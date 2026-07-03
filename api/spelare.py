@@ -1,20 +1,22 @@
-from fastapi import APIRouter
-from data.parserspelare import parsespelare
-from data.driveconnector import downloadexcelfromdrive
-from data.excelreader import readexcel_sheets
+from flask import Blueprint, jsonify
+from data.drive_connector import download_excel_from_drive
+from data.excel_reader import read_excel_data
 
-router = APIRouter()
+# Skapa blueprint för spelare
+app = Blueprint("spelare", __name__)
 
-@router.get("/spelare")
-def getallspelare():
-    filepath = downloadexcelfromdrive()
-        sheets = readexcelsheets(file_path)
-            data = parse_spelare(sheets)
-                return data
+@app.route("/spelare")
+def spelare():
+    """
+    Endpoint som returnerar spelarprofiler från Excel-filen.
+    """
+    try:
+        file_path = download_excel_from_drive()
+        sheets = read_excel_data(file_path)
 
-                @router.get("/spelare/{namn}")
-                def getsinglespelare(namn: str):
-                    filepath = downloadexcelfromdrive()
-                        sheets = readexcelsheets(file_path)
-                            data = parse_spelare(sheets)
-                                return data.get(namn, {"error": "Spelaren finns inte"})
+        # Plocka ut bladet "spelare" om det finns
+        spelare_data = sheets.get("spelare", {})
+        return jsonify(spelare_data)
+
+    except Exception as e:
+        return jsonify({"error": str(e)})
