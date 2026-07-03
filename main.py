@@ -115,6 +115,14 @@ def full_health():
             "message": str(e)
         })
 
+# ---------------------------------------------------------
+# Loggning av inkommande anrop 
+# ---------------------------------------------------------
+
+@app.before_request
+def log_request_info():
+    from flask import request
+    print(f"➡️ Route: {request.path} | Method: {request.method} | IP: {request.remote_addr}")
 
 # ---------------------------------------------------------
 # Starta Flask‑servern
