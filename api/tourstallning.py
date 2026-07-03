@@ -1,13 +1,22 @@
-from fastapi import APIRouter
-from data.parsertourstallning import parsetourstallning
-from data.driveconnector import downloadexcelfromdrive
-from data.excelreader import readexcel_sheets
+from flask import Blueprint, jsonify
+from data.drive_connector import download_excel_from_drive
+from data.excel_reader import read_excel_data
 
-router = APIRouter()
+# Skapa blueprint för tourställning
+app = Blueprint("tourstallning", __name__)
 
-@router.get("/tourstallning")
-def get_tourstallning():
-    filepath = downloadexcelfromdrive()
-    sheets = readexcelsheets(file_path)
-    data = parse_tourstallning(sheets)
-    return data
+@app.route("/tourstallning")
+def tourstallning():
+    """
+    Endpoint som returnerar tourställningsdata från Excel-filen.
+    """
+    try:
+        file_path = download_excel_from_drive()
+        sheets = read_excel_data(file_path)
+
+        # Plocka ut bladet "tourstallning" om det finns
+        tourstallning_data = sheets.get("tourstallning", {})
+        return jsonify(tourstallning_data)
+
+    except Exception as e:
+        return jsonify({"error": str(e)})
