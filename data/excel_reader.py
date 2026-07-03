@@ -1,17 +1,22 @@
 import pandas as pd
 
-def readexcelsheets(file_path: str) -> dict:
-    xls = pd.ExcelFile(file_path)
-        sheets = {}
+def read_excel_data(file_path):
+    """
+    Läser alla blad i Excel-filen och returnerar dem som JSON-vänliga dicts.
+    """
+    try:
+        # Läs alla blad i filen
+        excel_data = pd.read_excel(file_path, sheet_name=None, engine="openpyxl")
 
-            for sheetname in xls.sheetnames:
-                    try:
-                                df = pd.readexcel(filepath, sheetname=sheetname)
-                                            df = df.dropna(axis=1, how="all")
-                                                        df = df.dropna(axis=0, how="all")
-                                                                    df.columns = [str(c).strip() for c in df.columns]
-                                                                                sheets[sheet_name] = df
-                                                                                        except Exception as e:
-                                                                                                    print(f"Fel vid läsning av blad '{sheet_name}': {e}")
+        result = {}
 
-                                                                                                        return sheets
+        for sheet_name, df in excel_data.items():
+            # Konvertera NaN → None och DataFrame → list of dicts
+            cleaned = df.where(pd.notnull(df), None)
+            result[sheet_name.lower()] = cleaned.to_dict(orient="records")
+
+        return result
+
+    except Exception as e:
+        # Returnera fel som JSON-vänlig text
+        return {"error": str(e)}
