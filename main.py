@@ -46,6 +46,18 @@ def debug():
         file_path = download_excel_from_drive()
         sheets = read_excel_data(file_path)
 
+        print("🔍 DEBUG    return jsonify({"message": "API is running"})
+
+
+# ---------------------------------------------------------
+# Debug‑route — visar vilka blad som hittas i Excel‑filen
+# ---------------------------------------------------------
+@app.route("/debug")
+def debug():
+    try:
+        file_path = download_excel_from_drive()
+        sheets = read_excel_data(file_path)
+
         print("🔍 DEBUG: Excel-blad funna:", list(sheets.keys()))
 
         return jsonify({
