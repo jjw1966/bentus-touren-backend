@@ -21,7 +21,7 @@ app.register_blueprint(tourstallning_app)
 app.register_blueprint(deltavlingar_app)
 
 # ---------------------------------------------------------
-# Root‑route (så du slipper 404 i Render)
+# Root‑route
 # ---------------------------------------------------------
 @app.route("/")
 def home():
@@ -29,7 +29,7 @@ def home():
 
 
 # ---------------------------------------------------------
-# Debug‑route (visar vilka blad som hittas i Excel‑filen)
+# Debug‑route — visar vilka blad som hittas i Excel‑filen
 # ---------------------------------------------------------
 @app.route("/debug")
 def debug():
@@ -47,6 +47,73 @@ def debug():
     except Exception as e:
         print("❌ DEBUG ERROR:", e)
         return jsonify({"error": str(e)})
+
+
+# ---------------------------------------------------------
+# Health‑route — enkel status
+# ---------------------------------------------------------
+@app.route("/health")
+def health():
+    try:
+        file_path = download_excel_from_drive()
+        sheets = read_excel_data(file_path)
+        sheet_names = list(sheets.keys())
+
+        print("❤️ HEALTHCHECK: Excel-blad:", sheet_names)
+
+        return jsonify({
+            "status": "ok",
+            "excel_file": file_path,
+            "sheets_found": sheet_names,
+            "sheet_count": len(sheet_names)
+        })
+
+    except Exception as e:
+        print("💔 HEALTHCHECK ERROR:", e)
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        })
+
+
+# ---------------------------------------------------------
+# Full Health‑route — testar ALLA endpoints
+# ---------------------------------------------------------
+@app.route("/health/full")
+def full_health():
+    try:
+        file_path = download_excel_from_drive()
+        sheets = read_excel_data(file_path)
+        sheet_names = list(sheets.keys())
+
+        print("🧪 FULL HEALTHCHECK: Excel-blad:", sheet_names)
+
+        # Testa alla endpoints
+        results = {
+            "dashboard": sheets.get("dashboard"),
+            "spelare": sheets.get("spelare"),
+            "lagspel": sheets.get("lagspel"),
+            "tourstallning": sheets.get("tourstallning"),
+            "deltavlingar": {
+                namn: data for namn, data in sheets.items()
+                if namn.lower().startswith("deltävling")
+            }
+        }
+
+        return jsonify({
+            "status": "ok",
+            "excel_file": file_path,
+            "sheets_found": sheet_names,
+            "sheet_count": len(sheet_names),
+            "endpoint_results": results
+        })
+
+    except Exception as e:
+        print("💔 FULL HEALTHCHECK ERROR:", e)
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        })
 
 
 # ---------------------------------------------------------
