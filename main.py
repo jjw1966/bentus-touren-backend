@@ -130,31 +130,4 @@ def log_request_info():
 # ---------------------------------------------------------
 if __name__ == "__main__":
     print("🚀 Server running on port 10000...")
-    app.run(host="0.0.0.0", port=10000)            "excel_file": file_path,
-            "sheets_found": sheet_names,
-            "sheet_count": len(sheet_names),
-            "endpoint_results": results
-        })
-
-    except Exception as e:
-        print("💔 FULL HEALTHCHECK ERROR:", e)
-        return jsonify({
-            "status": "error",
-            "message": str(e)
-        })
-
-# ---------------------------------------------------------
-# Loggning av inkommande anrop 
-# ---------------------------------------------------------
-
-@app.before_request
-def log_request_info():
-    from flask import request
-    print(f"➡️ Route: {request.path} | Method: {request.method} | IP: {request.remote_addr}")
-
-# ---------------------------------------------------------
-# Starta Flask‑servern
-# ---------------------------------------------------------
-if __name__ == "__main__":
-    print("🚀 Server running on port 10000...")
     app.run(host="0.0.0.0", port=10000)
