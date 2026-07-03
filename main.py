@@ -88,6 +88,7 @@ def full_health():
         sheets = read_excel_data(file_path)
         sheet_names = list(sheets.keys())
         print("🧪 FULL HEALTHCHECK: Excel-blad:", sheet_names)
+
         results = {
             "dashboard": sheets.get("dashboard"),
             "spelare": sheets.get("spelare"),
@@ -98,6 +99,7 @@ def full_health():
                 if namn.lower().startswith("deltävling")
             }
         }
+
         return jsonify({
             "status": "ok",
             "excel_file": file_path,
@@ -128,13 +130,7 @@ def log_request_info():
 # ---------------------------------------------------------
 if __name__ == "__main__":
     print("🚀 Server running on port 10000...")
-    app.run(host="0.0.0.0", port=10000)              if namn.lower().startswith("deltävling")
-            }
-        }
-
-        return jsonify({
-            "status": "ok",
-            "excel_file": file_path,
+    app.run(host="0.0.0.0", port=10000)            "excel_file": file_path,
             "sheets_found": sheet_names,
             "sheet_count": len(sheet_names),
             "endpoint_results": results
