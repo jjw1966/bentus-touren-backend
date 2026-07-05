@@ -23,11 +23,11 @@ def lagspel():
 
 @app.route("/tourstallning")
 def tourstallning():
-    return jsonify(read_sheet("Tourstallning"))
+    return jsonify(read_sheet("Tourställning"))
 
 @app.route("/deltavlingar")
 def deltavlingar():
-    return jsonify(read_sheet("Deltavlingar"))
+    return jsonify(read_sheet("Deltävlingar"))
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
