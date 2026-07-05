@@ -23,11 +23,27 @@ def lagspel():
 
 @app.route("/tourstallning")
 def tourstallning():
-    return jsonify(read_sheet("Tourställning"))
+    return jsonify(read_sheet("Tourställning"))  # ← SVENSKT Ä
 
 @app.route("/deltavlingar")
 def deltavlingar():
-    return jsonify(read_sheet("Deltävlingar"))
+    # Läs alla deltävlingar och slå ihop dem i en lista
+    sheets = [
+        "Deltävling 1",
+        "Deltävling 2",
+        "Deltävling 3",
+        "Deltävling 4",
+        "Deltävling 5",
+        "Deltävling 6",
+        "Deltävling 7",
+        "Deltävling 8"
+    ]
+
+    output = {}
+    for s in sheets:
+        output[s] = read_sheet(s)
+
+    return jsonify(output)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
