@@ -5,5 +5,5 @@ tourstallning_bp = Blueprint("tourstallning", __name__, url_prefix="/tourstallni
 
 @tourstallning_bp.route("/")
 def get_tourstallning():
-    data = read_sheet("Tourställning")  # OBS: ä
+    data = read_sheet("Tourställning")
     return jsonify(data)
