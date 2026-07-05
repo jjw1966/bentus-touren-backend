@@ -5,5 +5,5 @@ resultat_bp = Blueprint("resultat", __name__, url_prefix="/resultat")
 
 @resultat_bp.route("/")
 def get_resultat():
-    data = read_sheet("Dashboard")
+    data = read_sheet("Resultat")
     return jsonify(data)
