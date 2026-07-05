@@ -23,11 +23,10 @@ def lagspel():
 
 @app.route("/tourstallning")
 def tourstallning():
-    return jsonify(read_sheet("Tourställning"))  # ← SVENSKT Ä
+    return jsonify(read_sheet("Tourställning"))  # OBS: ä
 
 @app.route("/deltavlingar")
 def deltavlingar():
-    # Läs alla deltävlingar och slå ihop dem i en lista
     sheets = [
         "Deltävling 1",
         "Deltävling 2",
