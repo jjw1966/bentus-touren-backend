@@ -1,48 +1,26 @@
-from flask import Flask, jsonify
+from flask import Flask
 from flask_cors import CORS
-from excel_reader import read_sheet
+
+# Importera alla API‑blueprints
+from api.dashboard import dashboard_bp
+from api.deltavlingar import deltavlingar_bp
+from api.lagspel import lagspel_bp
+from api.spelare import spelare_bp
+from api.tourstallning import tourstallning_bp
 
 app = Flask(__name__)
 CORS(app)
 
+# Registrera endpoints
+app.register_blueprint(dashboard_bp)
+app.register_blueprint(deltavlingar_bp)
+app.register_blueprint(lagspel_bp)
+app.register_blueprint(spelare_bp)
+app.register_blueprint(tourstallning_bp)
+
 @app.route("/")
 def home():
     return "Bentus Touren backend är igång!"
-
-@app.route("/resultat")
-def resultat():
-    return jsonify(read_sheet("Resultat"))
-
-@app.route("/spelare")
-def spelare():
-    return jsonify(read_sheet("Spelare"))
-
-@app.route("/lagspel")
-def lagspel():
-    return jsonify(read_sheet("Lagspel"))
-
-@app.route("/tourstallning")
-def tourstallning():
-    return jsonify(read_sheet("Tourställning"))  # OBS: ä
-
-@app.route("/deltavlingar")
-def deltavlingar():
-    sheets = [
-        "Deltävling 1",
-        "Deltävling 2",
-        "Deltävling 3",
-        "Deltävling 4",
-        "Deltävling 5",
-        "Deltävling 6",
-        "Deltävling 7",
-        "Deltävling 8"
-    ]
-
-    output = {}
-    for s in sheets:
-        output[s] = read_sheet(s)
-
-    return jsonify(output)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
