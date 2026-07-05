@@ -1,40 +1,61 @@
 from flask import Flask, jsonify
 from flask_cors import CORS
 
-# Importera alla API‑blueprints
-from api.dashboard import app as dashboard_app
-from api.spelare import app as spelare_app
-from api.lagspel import app as lagspel_app
-from api.tourstallning import app as tourstallning_app
-from api.deltavlingar import app as deltavlingar_app
-
-# Importera datalager
-from data.drive_connector import download_excel_from_drive
-from data.excel_reader import read_excel_data
-
-# ---------------------------------------------------------
-# Skapa Flask‑app + aktivera CORS
-# ---------------------------------------------------------
 app = Flask(__name__)
-CORS(app, origins=["https://jjw1966.github.io"])
+CORS(app)
 
-# ---------------------------------------------------------
-# Registrera alla blueprints
-# ---------------------------------------------------------
-app.register_blueprint(dashboard_app)
-app.register_blueprint(spelare_app)
-app.register_blueprint(lagspel_app)
-app.register_blueprint(tourstallning_app)
-app.register_blueprint(deltavlingar_app)
-
-# ---------------------------------------------------------
-# Root‑route
-# ---------------------------------------------------------
 @app.route("/")
 def home():
-    print("🔍 DEBUG: Root route anropad")
-    return jsonify({"message": "API is running"})
+    return "Bentus Touren backend är igång!"
 
+@app.route("/resultat")
+def resultat():
+    # Exempeldata – byt ut mot riktig logik senare
+    data = [
+        {"Spelare": "Joachim", "Poäng": 42},
+        {"Spelare": "Anders", "Poäng": 38},
+        {"Spelare": "Mikael", "Poäng": 35},
+        {"Spelare": "Jonas", "Poäng": 33}
+    ]
+    return jsonify(data)
+
+@app.route("/spelare")
+def spelare():
+    data = [
+        {"Namn": "Joachim", "Klubb": "Bentus", "Handicap": 12.4},
+        {"Namn": "Anders", "Klubb": "Bentus", "Handicap": 10.8},
+        {"Namn": "Mikael", "Klubb": "Bentus", "Handicap": 11.2}
+    ]
+    return jsonify(data)
+
+@app.route("/lagspel")
+def lagspel():
+    data = [
+        {"Lag": "Team A", "Poäng": 85},
+        {"Lag": "Team B", "Poäng": 78},
+        {"Lag": "Team C", "Poäng": 74}
+    ]
+    return jsonify(data)
+
+@app.route("/tourstallning")
+def tourstallning():
+    data = [
+        {"Placering": 1, "Spelare": "Joachim", "Poäng": 42},
+        {"Placering": 2, "Spelare": "Anders", "Poäng": 38},
+        {"Placering": 3, "Spelare": "Mikael", "Poäng": 35}
+    ]
+    return jsonify(data)
+
+@app.route("/deltavlingar")
+def deltavlingar():
+    data = [
+        {"Tävling": "Bentus Open", "Datum": "2026-06-15", "Vinnare": "Joachim"},
+        {"Tävling": "Sommarcupen", "Datum": "2026-07-01", "Vinnare": "Anders"}
+    ]
+    return jsonify(data)
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000)
 
 # ---------------------------------------------------------
 # Debug‑route — visar vilka blad som hittas i Excel‑filen
