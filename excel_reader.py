@@ -11,6 +11,6 @@ def read_sheet(sheet_name):
         response.raise_for_status()
         excel_data = BytesIO(response.content)
         df = pd.read_excel(excel_data, sheet_name=sheet_name)
-        return df.to_dict(orient="records")
+        return df
     except Exception as e:
         return {"error": str(e)}
