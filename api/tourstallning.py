@@ -1,9 +1,9 @@
 from flask import Blueprint, jsonify
-from data.excel_reader import read_sheet
+from excel_reader import read_sheet
 
-tourstallning_bp = Blueprint("tourstallning", __name__, url_prefix="/tourstallning")
+app = Blueprint("tourstallning", __name__)
 
-@tourstallning_bp.route("/")
-def get_tourstallning():
+@app.route("/tourstallning")
+def tourstallning():
     data = read_sheet("Tourställning")
     return jsonify(data)
