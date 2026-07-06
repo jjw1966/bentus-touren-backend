@@ -8,22 +8,18 @@ def spelare():
     """
     Hämtar spelarinfo från fliken 'Dashboard' i Bentus_Tour_2026.xlsx.
     Returnerar NH-liga och LD-liga med spelarnamn och poäng.
-    Hanterar saknade kolumner och mellanslag automatiskt.
+    Loggar kolumnnamn direkt i JSON-svaret för enkel felsökning.
     """
     df = read_sheet("Dashboard")
 
-    # Om något gick fel i läsningen
     if isinstance(df, dict) and "error" in df:
         return jsonify(df)
 
     # Rensa kolumnnamn från mellanslag och dolda tecken
     df.columns = df.columns.astype(str).str.strip()
-
-    # Kontrollera vilka kolumner som faktiskt finns
     columns = df.columns.tolist()
 
-    # Förbered svar
-    result = {}
+    result = {"columns_found": columns}
 
     # NH-liga
     nh_cols = [c for c in columns if "NH" in c or "Spelare" in c]
@@ -47,5 +43,4 @@ def spelare():
     else:
         result["LD-liga_error"] = f"Kolumner saknas: {ld_cols}"
 
-    # Returnera resultatet
     return jsonify(result)
