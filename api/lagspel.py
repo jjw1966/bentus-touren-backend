@@ -1,10 +1,13 @@
 from flask import Blueprint, jsonify
-from data.excel_reader import read_sheet
 
-lagspel_bp = Blueprint("lagspel", __name__, url_prefix="/lagspel")
+app = Blueprint("lagspel", __name__)
 
-@lagspel_bp.route("/")
-def get_lagspel():
-    sheets = ["Sura", "Fullerö", "Strand 1", "Strand 2"]
-    output = {s: read_sheet(s) for s in sheets}
-    return jsonify(output)
+@app.route("/lagspel")
+def lagspel_home():
+    # Exempeldata – byt till din riktiga datakälla
+    data = [
+        {"lag": "Team Bentus", "poang": 42},
+        {"lag": "Hallsta Masters", "poang": 37},
+        {"lag": "Touren Legends", "poang": 33}
+    ]
+    return jsonify(data)
