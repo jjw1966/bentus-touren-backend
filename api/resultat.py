@@ -1,9 +1,9 @@
 from flask import Blueprint, jsonify
-from data.excel_reader import read_sheet
+from excel_reader import read_sheet
 
-resultat_bp = Blueprint("resultat", __name__, url_prefix="/resultat")
+app = Blueprint("resultat", __name__)
 
-@resultat_bp.route("/")
-def get_resultat():
-    data = read_sheet("Dashboard")
+@app.route("/resultat")
+def resultat():
+    data = read_sheet("Resultat")
     return jsonify(data)
