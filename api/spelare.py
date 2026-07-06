@@ -8,6 +8,7 @@ def spelare():
     """
     Hämtar spelarinfo från fliken 'Dashboard' i Bentus_Tour_2026.xlsx.
     Returnerar NH-liga och LD-liga med spelarnamn och poäng.
+    Hanterar saknade kolumner och mellanslag automatiskt.
     """
     df = read_sheet("Dashboard")
 
@@ -15,11 +16,36 @@ def spelare():
     if isinstance(df, dict) and "error" in df:
         return jsonify(df)
 
-    # Plocka ut kolumner som innehåller NH- och LD-liga
-    nh_data = df.loc[:, ["NH-liga", "Spelare", "NH"]].dropna().to_dict(orient="records")
-    ld_data = df.loc[:, ["LD-liga", "Spelare.1"]].dropna().to_dict(orient="records")
+    # Rensa kolumnnamn från mellanslag och dolda tecken
+    df.columns = df.columns.astype(str).str.strip()
 
-    return jsonify({
-        "NH-liga": nh_data,
-        "LD-liga": ld_data
-    })
+    # Kontrollera vilka kolumner som faktiskt finns
+    columns = df.columns.tolist()
+
+    # Förbered svar
+    result = {}
+
+    # NH-liga
+    nh_cols = [c for c in columns if "NH" in c or "Spelare" in c]
+    if len(nh_cols) >= 3:
+        try:
+            nh_data = df.loc[:, nh_cols[:3]].dropna().to_dict(orient="records")
+            result["NH-liga"] = nh_data
+        except Exception as e:
+            result["NH-liga_error"] = str(e)
+    else:
+        result["NH-liga_error"] = f"Kolumner saknas: {nh_cols}"
+
+    # LD-liga
+    ld_cols = [c for c in columns if "LD" in c or "Spelare.1" in c]
+    if len(ld_cols) >= 2:
+        try:
+            ld_data = df.loc[:, ld_cols[:2]].dropna().to_dict(orient="records")
+            result["LD-liga"] = ld_data
+        except Exception as e:
+            result["LD-liga_error"] = str(e)
+    else:
+        result["LD-liga_error"] = f"Kolumner saknas: {ld_cols}"
+
+    # Returnera resultatet
+    return jsonify(result)
