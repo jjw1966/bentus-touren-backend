@@ -1,22 +1,29 @@
-from flask import Flask
+from flask import Flask, jsonify
 from flask_cors import CORS
 
-from api.dashboard import dashboard_bp
-from api.tourstallning import tourstallning_bp
-from api.lagspel import lagspel_bp
-from api.deltavlingar import deltavlingar_bp
+# Importera dina blueprints
+from api.dashboard import app as dashboard_app
+from api.spelare import app as spelare_app
+from api.lagspel import app as lagspel_app
+from api.tourstallning import app as tourstallning_app
+from api.deltavlingar import app as deltavlingar_app
 
+# Skapa huvudapp
 app = Flask(__name__)
-CORS(app)
+CORS(app)  # 🟩 Tillåter anrop från din frontend på Render
 
-app.register_blueprint(dashboard_bp)
-app.register_blueprint(tourstallning_bp)
-app.register_blueprint(lagspel_bp)
-app.register_blueprint(deltavlingar_bp)
+# Registrera alla endpoints
+app.register_blueprint(dashboard_app)
+app.register_blueprint(spelare_app)
+app.register_blueprint(lagspel_app)
+app.register_blueprint(tourstallning_app)
+app.register_blueprint(deltavlingar_app)
 
+# Test‑endpoint (valfri)
 @app.route("/")
 def home():
-    return "Bentus Touren backend är igång!"
+    return jsonify({"status": "Backend live 🎉"})
 
+# Starta servern
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    app.run(host="0.0.0.0", port=10000)
