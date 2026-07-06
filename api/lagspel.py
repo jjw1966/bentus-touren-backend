@@ -1,13 +1,9 @@
 from flask import Blueprint, jsonify
+from excel_reader import read_sheet
 
 app = Blueprint("lagspel", __name__)
 
 @app.route("/lagspel")
-def lagspel_home():
-    # Exempeldata – byt till din riktiga datakälla
-    data = [
-        {"lag": "Team Bentus", "poang": 42},
-        {"lag": "Hallsta Masters", "poang": 37},
-        {"lag": "Touren Legends", "poang": 33}
-    ]
+def lagspel():
+    data = read_sheet("Lagspel")
     return jsonify(data)
