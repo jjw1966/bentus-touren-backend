@@ -1,13 +1,12 @@
 from flask import Blueprint, jsonify
 from excel_reader import read_sheet
 
-# Skapa blueprint för spelare
 app = Blueprint("spelare", __name__)
 
 @app.route("/spelare")
 def spelare():
     """
-    Endpoint som returnerar spelarprofiler från Excel-filen.
+    Hämtar spelarprofiler från fliken 'Spelare' i Bentus_Tour_2026.xlsx.
     """
     data = read_sheet("Spelare")
     return jsonify(data)
