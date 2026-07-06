@@ -1,9 +1,13 @@
 from flask import Blueprint, jsonify
-from data.excel_reader import read_sheet
 
-spelare_bp = Blueprint("spelare", __name__, url_prefix="/spelare")
+app = Blueprint("spelare", __name__)
 
-@spelare_bp.route("/")
-def get_spelare():
-    data = read_sheet("Spelare")
+@app.route("/spelare")
+def spelare_home():
+    # Exempeldata – byt till din riktiga datakälla
+    data = [
+        {"namn": "Joachim", "hcp": 12.3},
+        {"namn": "Anders", "hcp": 9.8},
+        {"namn": "Maria", "hcp": 15.1}
+    ]
     return jsonify(data)
