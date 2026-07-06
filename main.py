@@ -2,7 +2,6 @@ from flask import Flask, jsonify
 from flask_cors import CORS
 
 # Importera dina blueprints
-from api.dashboard import app as dashboard_app
 from api.spelare import app as spelare_app
 from api.lagspel import app as lagspel_app
 from api.tourstallning import app as tourstallning_app
@@ -10,16 +9,15 @@ from api.deltavlingar import app as deltavlingar_app
 
 # Skapa huvudapp
 app = Flask(__name__)
-CORS(app)  # 🟩 Tillåter anrop från din frontend på Render
+CORS(app)  # Tillåter anrop från din frontend på Render
 
-# Registrera alla endpoints
-app.register_blueprint(dashboard_app)
+# Registrera alla blueprints
 app.register_blueprint(spelare_app)
 app.register_blueprint(lagspel_app)
 app.register_blueprint(tourstallning_app)
 app.register_blueprint(deltavlingar_app)
 
-# Test‑endpoint (valfri)
+# Test‑endpoint
 @app.route("/")
 def home():
     return jsonify({"status": "Backend live 🎉"})
