@@ -5,5 +5,15 @@ app = Blueprint("lagspel", __name__)
 
 @app.route("/lagspel")
 def lagspel():
-    data = read_sheet("Lagspel")
-    return jsonify(data)
+    df = read_sheet("Lagspel")
+
+    if isinstance(df, dict) and "error" in df:
+        return jsonify(df)
+
+    df.columns = df.columns.astype(str).str.strip()
+
+    try:
+        data = df.dropna().to_dict(orient="records")
+        return jsonify({"Lagspel": data})
+    except Exception as e:
+        return jsonify({"error": str(e), "columns": df.columns.tolist()})
