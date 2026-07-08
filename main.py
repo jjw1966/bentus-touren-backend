@@ -128,7 +128,7 @@ def event_nh(name):
     if err:
         return err, code
 
-    nh_table = df.iloc[20:26, 0:2]
+    nh_table = df.iloc[20:26, 0:2]  # kolumner A–B
     nh_table.columns = ["Hål", "Vinnare"]
 
     return jsonify({"event": name, "nh": nh_table.to_dict(orient="records")})
@@ -147,7 +147,7 @@ def event_ld(name):
     if err:
         return err, code
 
-    ld_table = df.iloc[20:26, 3:5]
+    ld_table = df.iloc[20:26, 3:5]  # kolumner D–E
     ld_table.columns = ["Hål", "Vinnare"]
 
     return jsonify({"event": name, "ld": ld_table.to_dict(orient="records")})
