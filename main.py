@@ -5,7 +5,7 @@ import time
 
 app = Flask(__name__)
 
-# Tillåt endast din frontend-domän
+# ✅ Tillåt endast din frontend-domän
 CORS(app, origins=["https://bentus-touren-frontend.onrender.com"])
 
 # ---------------------------------------------------------
@@ -100,18 +100,20 @@ def event_main(name):
     if err:
         return err, code
 
-    # Robust läsning av huvudtabell
     try:
+        # Huvudtabell: rader 3–12, kolumner A–I
         main_table = df.iloc[2:12, 0:9]
         main_table.columns = ["Plac", "Spelare", "HCP", "PB", "NH", "LD", "Bonus", "Tot", "Tourpoäng"]
-    except Exception:
+    except Exception as e:
+        print(f"Fel i huvudtabell för {name}: {e}")
         main_table = pd.DataFrame(columns=["Plac", "Spelare", "HCP", "PB", "NH", "LD", "Bonus", "Tot", "Tourpoäng"])
 
-    # Robust läsning av lagresultat
     try:
+        # Lagresultat: rader 22–27, kolumner Q–T
         team_table = df.iloc[21:27, 16:20]
         team_table.columns = ["Lag", "Resultat", "Plac", "Bonus"]
-    except Exception:
+    except Exception as e:
+        print(f"Fel i lagtabell för {name}: {e}")
         team_table = pd.DataFrame(columns=["Lag", "Resultat", "Plac", "Bonus"])
 
     return jsonify({
@@ -137,7 +139,8 @@ def event_nh(name):
     try:
         nh_table = df.iloc[20:26, 0:2]
         nh_table.columns = ["Hål", "Vinnare"]
-    except Exception:
+    except Exception as e:
+        print(f"Fel i NH-tabell för {name}: {e}")
         nh_table = pd.DataFrame(columns=["Hål", "Vinnare"])
 
     return jsonify({"event": name, "nh": nh_table.to_dict(orient="records")})
@@ -159,7 +162,8 @@ def event_ld(name):
     try:
         ld_table = df.iloc[20:26, 3:5]
         ld_table.columns = ["Hål", "Vinnare"]
-    except Exception:
+    except Exception as e:
+        print(f"Fel i LD-tabell för {name}: {e}")
         ld_table = pd.DataFrame(columns=["Hål", "Vinnare"])
 
     return jsonify({"event": name, "ld": ld_table.to_dict(orient="records")})
