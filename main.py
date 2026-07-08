@@ -182,8 +182,14 @@ def tour_summary():
         for _, row in main_table.iterrows():
             player = str(row["Spelare"]).strip()
             points = row["Tourpoäng"]
-            if pd.notna(player) and pd.notna(points):
-                totals[player] = totals.get(player, 0) + points
+
+            # Hoppa över rubrikraden och icke-numeriska värden
+            if player.lower() == "spelare":
+                continue
+            if not isinstance(points, (int, float)):
+                continue
+
+            totals[player] = totals.get(player, 0) + points
 
     # Sortera efter totalpoäng
     sorted_totals = sorted(totals.items(), key=lambda x: x[1], reverse=True)
