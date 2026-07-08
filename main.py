@@ -7,8 +7,7 @@ app = Flask(__name__)
 # ---------------------------------------------------------
 # Konfiguration
 # ---------------------------------------------------------
-FILE_URL = "https://docs.google.com/spreadsheets/d/1Y7NhhTDfZJQAFVtQVniJpLoY6BYahbuf/export?format=xlsx"
-
+FILE_URL = "https://docs.google.com/spreadsheets/d/1oBF2HfyMOp1xjGAcuUrduvgds4ToyuQz/export?format=xlsx"
 CACHE_TTL = 300  # 5 minuter cache
 _cache_workbook = None
 _cache_timestamp = 0
