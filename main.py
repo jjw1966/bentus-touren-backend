@@ -1,8 +1,12 @@
 from flask import Flask, jsonify
+from flask_cors import CORS
 import pandas as pd
 import time
 
 app = Flask(__name__)
+
+# ✅ Tillåt endast din frontend-domän
+CORS(app, origins=["https://bentus-touren-frontend.onrender.com"])
 
 # ---------------------------------------------------------
 # Konfiguration
@@ -41,10 +45,7 @@ def safe_sheet(wb, name):
 
 
 def is_event_sheet(df):
-    """
-    Identifierar deltävlingar baserat på cellvärden.
-    Spelarnamnen ligger i kolumn B (index 1), rader 3–12.
-    """
+    """Identifierar deltävlingar baserat på cellvärden."""
     players = df.iloc[2:12, 1]  # kolumn B
     return players.notna().sum() >= 5
 
@@ -71,7 +72,6 @@ def list_events():
     for sheet in wb.sheet_names:
         name = sheet.lower()
 
-        # Ignorera icke-deltävlingar
         if name in ["dashboard", "tourställning"]:
             continue
         if name.startswith("deltävling"):
@@ -100,11 +100,9 @@ def event_main(name):
     if err:
         return err, code
 
-    # Huvudtabell: rader 3–12, kolumner A–I
     main_table = df.iloc[2:12, 0:9]
     main_table.columns = ["Plac", "Spelare", "HCP", "PB", "NH", "LD", "Bonus", "Tot", "Tourpoäng"]
 
-    # Lagresultat: rader 22–27, kolumner Q–T
     team_table = df.iloc[21:27, 16:20]
     team_table.columns = ["Lag", "Resultat", "Plac", "Bonus"]
 
@@ -128,7 +126,7 @@ def event_nh(name):
     if err:
         return err, code
 
-    nh_table = df.iloc[20:26, 0:2]  # kolumner A–B
+    nh_table = df.iloc[20:26, 0:2]
     nh_table.columns = ["Hål", "Vinnare"]
 
     return jsonify({"event": name, "nh": nh_table.to_dict(orient="records")})
@@ -147,7 +145,7 @@ def event_ld(name):
     if err:
         return err, code
 
-    ld_table = df.iloc[20:26, 3:5]  # kolumner D–E
+    ld_table = df.iloc[20:26, 3:5]
     ld_table.columns = ["Hål", "Vinnare"]
 
     return jsonify({"event": name, "ld": ld_table.to_dict(orient="records")})
@@ -175,7 +173,6 @@ def tour_summary():
         if err:
             continue
 
-        # Huvudtabell: rader 3–12, kolumner A–I
         main_table = df.iloc[2:12, 0:9]
         main_table.columns = ["Plac", "Spelare", "HCP", "PB", "NH", "LD", "Bonus", "Tot", "Tourpoäng"]
 
@@ -183,7 +180,6 @@ def tour_summary():
             player = str(row["Spelare"]).strip()
             points = row["Tourpoäng"]
 
-            # Hoppa över rubrikraden och icke-numeriska värden
             if player.lower() == "spelare":
                 continue
             if not isinstance(points, (int, float)):
@@ -191,7 +187,6 @@ def tour_summary():
 
             totals[player] = totals.get(player, 0) + points
 
-    # Sortera efter totalpoäng
     sorted_totals = sorted(totals.items(), key=lambda x: x[1], reverse=True)
     result = [{"Spelare": p, "Totalpoäng": round(v, 1)} for p, v in sorted_totals]
 
