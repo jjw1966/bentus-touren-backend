@@ -43,9 +43,9 @@ def safe_sheet(wb, name):
 def is_event_sheet(df):
     """
     Identifierar deltävlingar baserat på cellvärden.
-    Spelarnamnen ligger i kolumn C (index 2), rader 3–12.
+    Spelarnamnen ligger i kolumn B (index 1), rader 3–12.
     """
-    players = df.iloc[2:12, 2]  # kolumn C
+    players = df.iloc[2:12, 1]  # kolumn B
     return players.notna().sum() >= 5
 
 
@@ -152,6 +152,10 @@ def event_ld(name):
 
     return jsonify({"event": name, "ld": ld_table.to_dict(orient="records")})
 
+
+# ---------------------------------------------------------
+# Debug: visa vad som hittas i varje flik
+# ---------------------------------------------------------
 @app.route("/debug/events")
 def debug_events():
     wb = load_workbook()
@@ -161,10 +165,12 @@ def debug_events():
     result = {}
     for sheet in wb.sheet_names:
         df, _, _ = safe_sheet(wb, sheet)
-        players = df.iloc[2:12, 2].dropna().tolist()
+        players = df.iloc[2:12, 1].dropna().tolist()
         result[sheet] = players
 
     return jsonify(result)
+
+
 # ---------------------------------------------------------
 # Startpunkt för Docker / Render
 # ---------------------------------------------------------
