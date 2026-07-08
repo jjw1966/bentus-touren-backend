@@ -5,7 +5,7 @@ import time
 
 app = Flask(__name__)
 
-# ✅ Tillåt endast din frontend-domän
+# Tillåt endast din frontend-domän
 CORS(app, origins=["https://bentus-touren-frontend.onrender.com"])
 
 # ---------------------------------------------------------
@@ -100,11 +100,19 @@ def event_main(name):
     if err:
         return err, code
 
-    main_table = df.iloc[2:12, 0:9]
-    main_table.columns = ["Plac", "Spelare", "HCP", "PB", "NH", "LD", "Bonus", "Tot", "Tourpoäng"]
+    # Robust läsning av huvudtabell
+    try:
+        main_table = df.iloc[2:12, 0:9]
+        main_table.columns = ["Plac", "Spelare", "HCP", "PB", "NH", "LD", "Bonus", "Tot", "Tourpoäng"]
+    except Exception:
+        main_table = pd.DataFrame(columns=["Plac", "Spelare", "HCP", "PB", "NH", "LD", "Bonus", "Tot", "Tourpoäng"])
 
-    team_table = df.iloc[21:27, 16:20]
-    team_table.columns = ["Lag", "Resultat", "Plac", "Bonus"]
+    # Robust läsning av lagresultat
+    try:
+        team_table = df.iloc[21:27, 16:20]
+        team_table.columns = ["Lag", "Resultat", "Plac", "Bonus"]
+    except Exception:
+        team_table = pd.DataFrame(columns=["Lag", "Resultat", "Plac", "Bonus"])
 
     return jsonify({
         "event": name,
@@ -126,8 +134,11 @@ def event_nh(name):
     if err:
         return err, code
 
-    nh_table = df.iloc[20:26, 0:2]
-    nh_table.columns = ["Hål", "Vinnare"]
+    try:
+        nh_table = df.iloc[20:26, 0:2]
+        nh_table.columns = ["Hål", "Vinnare"]
+    except Exception:
+        nh_table = pd.DataFrame(columns=["Hål", "Vinnare"])
 
     return jsonify({"event": name, "nh": nh_table.to_dict(orient="records")})
 
@@ -145,8 +156,11 @@ def event_ld(name):
     if err:
         return err, code
 
-    ld_table = df.iloc[20:26, 3:5]
-    ld_table.columns = ["Hål", "Vinnare"]
+    try:
+        ld_table = df.iloc[20:26, 3:5]
+        ld_table.columns = ["Hål", "Vinnare"]
+    except Exception:
+        ld_table = pd.DataFrame(columns=["Hål", "Vinnare"])
 
     return jsonify({"event": name, "ld": ld_table.to_dict(orient="records")})
 
@@ -173,8 +187,11 @@ def tour_summary():
         if err:
             continue
 
-        main_table = df.iloc[2:12, 0:9]
-        main_table.columns = ["Plac", "Spelare", "HCP", "PB", "NH", "LD", "Bonus", "Tot", "Tourpoäng"]
+        try:
+            main_table = df.iloc[2:12, 0:9]
+            main_table.columns = ["Plac", "Spelare", "HCP", "PB", "NH", "LD", "Bonus", "Tot", "Tourpoäng"]
+        except Exception:
+            continue
 
         for _, row in main_table.iterrows():
             player = str(row["Spelare"]).strip()
