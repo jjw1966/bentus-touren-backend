@@ -1,4 +1,4 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request, make_response
 from flask_cors import CORS
 import pandas as pd
 import time
@@ -15,14 +15,15 @@ def add_cors_headers(response):
     response.headers["Access-Control-Allow-Methods"] = "GET, OPTIONS"
     return response
 
-# 🟩 OPTIONS-route för preflight requests
-@app.route("/<path:path>", methods=["OPTIONS"])
-def options_handler(path):
-    response = jsonify({"status": "ok"})
-    response.headers["Access-Control-Allow-Origin"] = "https://bentus-touren-frontend.onrender.com"
-    response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
-    response.headers["Access-Control-Allow-Methods"] = "GET, OPTIONS"
-    return response
+# 🟩 Fångar alla OPTIONS-anrop innan Flask försöker matcha route
+@app.before_request
+def handle_options():
+    if request.method == "OPTIONS":
+        response = make_response(jsonify({"status": "ok"}), 200)
+        response.headers["Access-Control-Allow-Origin"] = "https://bentus-touren-frontend.onrender.com"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+        response.headers["Access-Control-Allow-Methods"] = "GET, OPTIONS"
+        return response
 
 # ---------------------------------------------------------
 # Konfiguration
