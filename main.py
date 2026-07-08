@@ -42,9 +42,10 @@ def safe_sheet(wb, name):
 
 
 def is_event_sheet(df):
-    """Returnerar True om fliken innehåller deltävlingens struktur."""
-    # Om fliken har minst 10 rader med data i kolumn B (spelare)
-    if df.shape[0] > 10 and df.iloc[2:12, 1].notna().sum() >= 5:
+    """Identifierar deltävlingar baserat på cellvärden, inte kolumnnamn."""
+    # Om kolumn B (spelare) har minst 5 namn mellan rad 3–12
+    players = df.iloc[2:12, 1]
+    if players.notna().sum() >= 5:
         return True
     return False
 
@@ -152,4 +153,7 @@ def event_ld(name):
 
 
 # ---------------------------------------------------------
-# Startpunkt för Docker
+# Startpunkt för Docker / Render
+# ---------------------------------------------------------
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=10000)
