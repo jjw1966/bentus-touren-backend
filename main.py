@@ -83,11 +83,11 @@ def list_events():
     for sheet in wb.sheet_names:
         name = sheet.lower()
 
-        # Ignorera Dashboard och Tourställning i eventlistan
+        # Dashboard och Tourställning ska inte visas som deltävlingar
         if name in ["dashboard", "tourställning"]:
             continue
 
-        # Ignorera alla flikar som heter något med "Deltävling"
+        # Flikar som heter "Deltävling X" ska inte visas
         if name.startswith("deltävling"):
             continue
 
