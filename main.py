@@ -48,6 +48,18 @@ def safe_sheet(wb, name):
     return wb.parse(name), None, None
 
 
+def is_event_sheet(df):
+    """
+    Returnerar True om fliken har deltävlingens struktur.
+    Vi letar efter typiska kolumner som finns i dina deltävlingar.
+    """
+    expected_cols = {
+        "Namn", "Poäng", "Placering", "HCP", "PB",
+        "NH", "LD", "Bonus", "Tot", "Tourpoäng"
+    }
+    return len(expected_cols.intersection(df.columns)) > 0
+
+
 # ---------------------------------------------------------
 # Hälsokontroll (Render kräver detta)
 # ---------------------------------------------------------
@@ -58,7 +70,7 @@ def health_check():
 
 
 # ---------------------------------------------------------
-# Lista aktiva deltävlingar
+# Lista riktiga deltävlingar
 # ---------------------------------------------------------
 @app.route("/events")
 def list_events():
@@ -66,11 +78,25 @@ def list_events():
     if isinstance(wb, str):
         return jsonify({"error": wb}), 500
 
-    base_events = ["Sura", "Fullerö", "Strand 1", "Strand 2"]
     events = []
 
     for sheet in wb.sheet_names:
-        if sheet in base_events or not sheet.startswith("Deltävling"):
+        name = sheet.lower()
+
+        # Ignorera Dashboard och Tourställning i eventlistan
+        if name in ["dashboard", "tourställning"]:
+            continue
+
+        # Ignorera alla flikar som heter något med "Deltävling"
+        if name.startswith("deltävling"):
+            continue
+
+        # Kolla om fliken har deltävlingens struktur
+        df, err, code = safe_sheet(wb, sheet)
+        if err:
+            continue
+
+        if is_event_sheet(df):
             events.append(sheet)
 
     return jsonify(events)
@@ -89,7 +115,7 @@ def event_main(name):
     if err:
         return err, code
 
-    columns = ["Namn", "Poäng", "Placering", "Lag"]
+    columns = ["Namn", "Poäng", "Placering", "Lag", "HCP", "PB", "NH", "LD", "Bonus", "Tot", "Tourpoäng"]
     table = extract_table(df, columns)
 
     return jsonify({"event": name, "main": table})
