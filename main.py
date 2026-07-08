@@ -8,6 +8,14 @@ app = Flask(__name__)
 # Tillåt endast din frontend-domän
 CORS(app, origins=["https://bentus-touren-frontend.onrender.com"])
 
+# 🟩 Extra CORS-fix för Render
+@app.after_request
+def add_cors_headers(response):
+    response.headers["Access-Control-Allow-Origin"] = "https://bentus-touren-frontend.onrender.com"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+    response.headers["Access-Control-Allow-Methods"] = "GET, OPTIONS"
+    return response
+
 # ---------------------------------------------------------
 # Konfiguration
 # ---------------------------------------------------------
@@ -101,24 +109,17 @@ def event_main(name):
         return err, code
 
     try:
-        # 🟩 Riktiga datarader: rad 4–13 (index 3–12)
         main_table = df.iloc[3:13, 0:9]
         main_table.columns = ["Plac", "Spelare", "HCP", "PB", "NH", "LD", "Bonus", "Tot", "Tourpoäng"]
-
-        # 🟩 Filtrera bort tomma rader
         main_table = main_table.dropna(subset=["Spelare"])
-
     except Exception as e:
         print(f"Fel i huvudtabell för {name}: {e}")
         main_table = pd.DataFrame(columns=["Plac", "Spelare", "HCP", "PB", "NH", "LD", "Bonus", "Tot", "Tourpoäng"])
 
     try:
-        # 🟩 Lagresultat: rad 22–27 (index 21–26), kolumner Q–T (index 16–19)
         team_table = df.iloc[21:27, 16:20]
         team_table.columns = ["Lag", "Resultat", "Plac", "Bonus"]
-
         team_table = team_table.dropna(subset=["Lag"])
-
     except Exception as e:
         print(f"Fel i lagtabell för {name}: {e}")
         team_table = pd.DataFrame(columns=["Lag", "Resultat", "Plac", "Bonus"])
