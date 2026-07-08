@@ -5,7 +5,7 @@ import time
 
 app = Flask(__name__)
 
-# ✅ Tillåt endast din frontend-domän
+# Tillåt endast din frontend-domän
 CORS(app, origins=["https://bentus-touren-frontend.onrender.com"])
 
 # ---------------------------------------------------------
@@ -46,7 +46,7 @@ def safe_sheet(wb, name):
 
 def is_event_sheet(df):
     """Identifierar deltävlingar baserat på cellvärden."""
-    players = df.iloc[2:12, 1]  # kolumn B
+    players = df.iloc[3:13, 1]  # kolumn B, riktiga spelarrader
     return players.notna().sum() >= 5
 
 
@@ -101,17 +101,24 @@ def event_main(name):
         return err, code
 
     try:
-        # Huvudtabell: rader 3–12, kolumner A–I
-        main_table = df.iloc[2:12, 0:9]
+        # 🟩 Riktiga datarader: rad 4–13 (index 3–12)
+        main_table = df.iloc[3:13, 0:9]
         main_table.columns = ["Plac", "Spelare", "HCP", "PB", "NH", "LD", "Bonus", "Tot", "Tourpoäng"]
+
+        # 🟩 Filtrera bort tomma rader
+        main_table = main_table.dropna(subset=["Spelare"])
+
     except Exception as e:
         print(f"Fel i huvudtabell för {name}: {e}")
         main_table = pd.DataFrame(columns=["Plac", "Spelare", "HCP", "PB", "NH", "LD", "Bonus", "Tot", "Tourpoäng"])
 
     try:
-        # Lagresultat: rader 22–27, kolumner Q–T
+        # 🟩 Lagresultat: rad 22–27 (index 21–26), kolumner Q–T (index 16–19)
         team_table = df.iloc[21:27, 16:20]
         team_table.columns = ["Lag", "Resultat", "Plac", "Bonus"]
+
+        team_table = team_table.dropna(subset=["Lag"])
+
     except Exception as e:
         print(f"Fel i lagtabell för {name}: {e}")
         team_table = pd.DataFrame(columns=["Lag", "Resultat", "Plac", "Bonus"])
@@ -139,6 +146,7 @@ def event_nh(name):
     try:
         nh_table = df.iloc[20:26, 0:2]
         nh_table.columns = ["Hål", "Vinnare"]
+        nh_table = nh_table.dropna(subset=["Hål"])
     except Exception as e:
         print(f"Fel i NH-tabell för {name}: {e}")
         nh_table = pd.DataFrame(columns=["Hål", "Vinnare"])
@@ -162,6 +170,7 @@ def event_ld(name):
     try:
         ld_table = df.iloc[20:26, 3:5]
         ld_table.columns = ["Hål", "Vinnare"]
+        ld_table = ld_table.dropna(subset=["Hål"])
     except Exception as e:
         print(f"Fel i LD-tabell för {name}: {e}")
         ld_table = pd.DataFrame(columns=["Hål", "Vinnare"])
@@ -192,7 +201,7 @@ def tour_summary():
             continue
 
         try:
-            main_table = df.iloc[2:12, 0:9]
+            main_table = df.iloc[3:13, 0:9]
             main_table.columns = ["Plac", "Spelare", "HCP", "PB", "NH", "LD", "Bonus", "Tot", "Tourpoäng"]
         except Exception:
             continue
@@ -201,8 +210,6 @@ def tour_summary():
             player = str(row["Spelare"]).strip()
             points = row["Tourpoäng"]
 
-            if player.lower() == "spelare":
-                continue
             if not isinstance(points, (int, float)):
                 continue
 
@@ -226,7 +233,7 @@ def debug_events():
     result = {}
     for sheet in wb.sheet_names:
         df, _, _ = safe_sheet(wb, sheet)
-        players = df.iloc[2:12, 1].dropna().tolist()
+        players = df.iloc[3:13, 1].dropna().tolist()
         result[sheet] = players
 
     return jsonify(result)
