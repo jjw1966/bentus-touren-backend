@@ -42,12 +42,12 @@ def safe_sheet(wb, name):
 
 
 def is_event_sheet(df):
-    """Identifierar deltävlingar baserat på cellvärden, inte kolumnnamn."""
-    # Om kolumn B (spelare) har minst 5 namn mellan rad 3–12
-    players = df.iloc[2:12, 1]
-    if players.notna().sum() >= 5:
-        return True
-    return False
+    """
+    Identifierar deltävlingar baserat på cellvärden.
+    Spelarnamnen ligger i kolumn C (index 2), rader 3–12.
+    """
+    players = df.iloc[2:12, 2]  # kolumn C
+    return players.notna().sum() >= 5
 
 
 # ---------------------------------------------------------
@@ -71,6 +71,8 @@ def list_events():
     events = []
     for sheet in wb.sheet_names:
         name = sheet.lower()
+
+        # Ignorera icke-deltävlingar
         if name in ["dashboard", "tourställning"]:
             continue
         if name.startswith("deltävling"):
