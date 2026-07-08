@@ -154,6 +154,45 @@ def event_ld(name):
 
 
 # ---------------------------------------------------------
+# Tourställning – summera Tourpoäng per spelare
+# ---------------------------------------------------------
+@app.route("/tour")
+def tour_summary():
+    wb = load_workbook()
+    if isinstance(wb, str):
+        return jsonify({"error": wb}), 500
+
+    totals = {}
+
+    for sheet in wb.sheet_names:
+        name = sheet.lower()
+        if name in ["dashboard", "tourställning"]:
+            continue
+        if name.startswith("deltävling"):
+            continue
+
+        df, err, code = safe_sheet(wb, sheet)
+        if err:
+            continue
+
+        # Huvudtabell: rader 3–12, kolumner A–I
+        main_table = df.iloc[2:12, 0:9]
+        main_table.columns = ["Plac", "Spelare", "HCP", "PB", "NH", "LD", "Bonus", "Tot", "Tourpoäng"]
+
+        for _, row in main_table.iterrows():
+            player = str(row["Spelare"]).strip()
+            points = row["Tourpoäng"]
+            if pd.notna(player) and pd.notna(points):
+                totals[player] = totals.get(player, 0) + points
+
+    # Sortera efter totalpoäng
+    sorted_totals = sorted(totals.items(), key=lambda x: x[1], reverse=True)
+    result = [{"Spelare": p, "Totalpoäng": round(v, 1)} for p, v in sorted_totals]
+
+    return jsonify(result)
+
+
+# ---------------------------------------------------------
 # Debug: visa vad som hittas i varje flik
 # ---------------------------------------------------------
 @app.route("/debug/events")
