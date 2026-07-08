@@ -15,6 +15,15 @@ def add_cors_headers(response):
     response.headers["Access-Control-Allow-Methods"] = "GET, OPTIONS"
     return response
 
+# 🟩 OPTIONS-route för preflight requests
+@app.route("/<path:path>", methods=["OPTIONS"])
+def options_handler(path):
+    response = jsonify({"status": "ok"})
+    response.headers["Access-Control-Allow-Origin"] = "https://bentus-touren-frontend.onrender.com"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+    response.headers["Access-Control-Allow-Methods"] = "GET, OPTIONS"
+    return response
+
 # ---------------------------------------------------------
 # Konfiguration
 # ---------------------------------------------------------
