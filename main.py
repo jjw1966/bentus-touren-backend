@@ -152,7 +152,19 @@ def event_ld(name):
 
     return jsonify({"event": name, "ld": ld_table.to_dict(orient="records")})
 
+@app.route("/debug/events")
+def debug_events():
+    wb = load_workbook()
+    if isinstance(wb, str):
+        return jsonify({"error": wb}), 500
 
+    result = {}
+    for sheet in wb.sheet_names:
+        df, _, _ = safe_sheet(wb, sheet)
+        players = df.iloc[2:12, 2].dropna().tolist()
+        result[sheet] = players
+
+    return jsonify(result)
 # ---------------------------------------------------------
 # Startpunkt för Docker / Render
 # ---------------------------------------------------------
