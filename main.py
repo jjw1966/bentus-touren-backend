@@ -5,10 +5,9 @@ import time
 
 app = Flask(__name__)
 
-# Tillåt endast din frontend-domän
-CORS(app, origins=["https://bentus-touren-frontend.onrender.com"])
+# 🟩 Full CORS-stöd för Render frontend
+CORS(app, resources={r"/*": {"origins": "https://bentus-touren-frontend.onrender.com"}}, supports_credentials=True)
 
-# 🟩 Extra CORS-fix för Render
 @app.after_request
 def add_cors_headers(response):
     response.headers["Access-Control-Allow-Origin"] = "https://bentus-touren-frontend.onrender.com"
@@ -20,16 +19,14 @@ def add_cors_headers(response):
 # Konfiguration
 # ---------------------------------------------------------
 FILE_URL = "https://docs.google.com/spreadsheets/d/1oBF2HfyMOp1xjGAcuUrduvgds4ToyuQz/export?format=xlsx"
-CACHE_TTL = 300  # 5 minuter cache
+CACHE_TTL = 300
 _cache_workbook = None
 _cache_timestamp = 0
-
 
 # ---------------------------------------------------------
 # Hjälpfunktioner
 # ---------------------------------------------------------
 def load_workbook():
-    """Laddar Excel-filen från Google Sheets med caching."""
     global _cache_workbook, _cache_timestamp
     now = time.time()
 
@@ -44,19 +41,14 @@ def load_workbook():
     except Exception as e:
         return str(e)
 
-
 def safe_sheet(wb, name):
-    """Returnerar DataFrame eller felmeddelande."""
     if name not in wb.sheet_names:
         return None, jsonify({"error": f"Fliken '{name}' finns inte."}), 404
     return wb.parse(name, header=None), None, None
 
-
 def is_event_sheet(df):
-    """Identifierar deltävlingar baserat på cellvärden."""
-    players = df.iloc[3:13, 1]  # kolumn B, riktiga spelarrader
+    players = df.iloc[3:13, 1]
     return players.notna().sum() >= 5
-
 
 # ---------------------------------------------------------
 # Hälsokontroll
@@ -66,9 +58,8 @@ def is_event_sheet(df):
 def health_check():
     return jsonify({"status": "ok"}), 200
 
-
 # ---------------------------------------------------------
-# Lista riktiga deltävlingar
+# Lista deltävlingar
 # ---------------------------------------------------------
 @app.route("/events")
 def list_events():
@@ -94,9 +85,8 @@ def list_events():
 
     return jsonify(events)
 
-
 # ---------------------------------------------------------
-# Huvudtabell för en deltävling
+# Huvudtabell
 # ---------------------------------------------------------
 @app.route("/event/<name>")
 def event_main(name):
@@ -112,16 +102,14 @@ def event_main(name):
         main_table = df.iloc[3:13, 0:9]
         main_table.columns = ["Plac", "Spelare", "HCP", "PB", "NH", "LD", "Bonus", "Tot", "Tourpoäng"]
         main_table = main_table.dropna(subset=["Spelare"])
-    except Exception as e:
-        print(f"Fel i huvudtabell för {name}: {e}")
+    except Exception:
         main_table = pd.DataFrame(columns=["Plac", "Spelare", "HCP", "PB", "NH", "LD", "Bonus", "Tot", "Tourpoäng"])
 
     try:
         team_table = df.iloc[21:27, 16:20]
         team_table.columns = ["Lag", "Resultat", "Plac", "Bonus"]
         team_table = team_table.dropna(subset=["Lag"])
-    except Exception as e:
-        print(f"Fel i lagtabell för {name}: {e}")
+    except Exception:
         team_table = pd.DataFrame(columns=["Lag", "Resultat", "Plac", "Bonus"])
 
     return jsonify({
@@ -130,9 +118,8 @@ def event_main(name):
         "teams": team_table.to_dict(orient="records")
     })
 
-
 # ---------------------------------------------------------
-# Närmast hål (NH)
+# NH
 # ---------------------------------------------------------
 @app.route("/event/<name>/nh")
 def event_nh(name):
@@ -148,15 +135,13 @@ def event_nh(name):
         nh_table = df.iloc[20:26, 0:2]
         nh_table.columns = ["Hål", "Vinnare"]
         nh_table = nh_table.dropna(subset=["Hål"])
-    except Exception as e:
-        print(f"Fel i NH-tabell för {name}: {e}")
+    except Exception:
         nh_table = pd.DataFrame(columns=["Hål", "Vinnare"])
 
     return jsonify({"event": name, "nh": nh_table.to_dict(orient="records")})
 
-
 # ---------------------------------------------------------
-# Längsta drive (LD)
+# LD
 # ---------------------------------------------------------
 @app.route("/event/<name>/ld")
 def event_ld(name):
@@ -172,15 +157,13 @@ def event_ld(name):
         ld_table = df.iloc[20:26, 3:5]
         ld_table.columns = ["Hål", "Vinnare"]
         ld_table = ld_table.dropna(subset=["Hål"])
-    except Exception as e:
-        print(f"Fel i LD-tabell för {name}: {e}")
+    except Exception:
         ld_table = pd.DataFrame(columns=["Hål", "Vinnare"])
 
     return jsonify({"event": name, "ld": ld_table.to_dict(orient="records")})
 
-
 # ---------------------------------------------------------
-# Tourställning – summera Tourpoäng per spelare
+# Tourställning
 # ---------------------------------------------------------
 @app.route("/tour")
 def tour_summary():
@@ -221,27 +204,8 @@ def tour_summary():
 
     return jsonify(result)
 
-
 # ---------------------------------------------------------
-# Debug: visa vad som hittas i varje flik
-# ---------------------------------------------------------
-@app.route("/debug/events")
-def debug_events():
-    wb = load_workbook()
-    if isinstance(wb, str):
-        return jsonify({"error": wb}), 500
-
-    result = {}
-    for sheet in wb.sheet_names:
-        df, _, _ = safe_sheet(wb, sheet)
-        players = df.iloc[3:13, 1].dropna().tolist()
-        result[sheet] = players
-
-    return jsonify(result)
-
-
-# ---------------------------------------------------------
-# Startpunkt för Docker / Render
+# Startpunkt
 # ---------------------------------------------------------
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
