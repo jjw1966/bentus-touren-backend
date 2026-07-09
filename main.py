@@ -128,7 +128,7 @@ def dashboard():
     })
 
 # ---------------------------------------------------------
-# Tourställning (oförändrad)
+# Tourställning — nu också lowercase
 # ---------------------------------------------------------
 @app.route("/tour")
 def tour_summary():
@@ -137,21 +137,26 @@ def tour_summary():
         return jsonify({"error": wb}), 500
 
     totals = {}
+
     for sheet in wb.sheet_names:
         name = sheet.lower()
+
         if name in ["dashboard", "tourställning"]:
             continue
         if name.startswith("deltävling"):
             continue
+
         df, err, code = safe_sheet(wb, sheet)
         if err:
             continue
+
         try:
             main_table = df.iloc[3:13, 0:9]
             main_table.columns = ["Plac", "Spelare", "HCP", "PB", "NH", "LD", "Bonus", "Tot", "Tourpoäng"]
             main_table = main_table.fillna("")
         except Exception:
             continue
+
         for _, row in main_table.iterrows():
             player = str(row["Spelare"]).strip()
             points = row["Tourpoäng"]
@@ -160,7 +165,14 @@ def tour_summary():
             totals[player] = totals.get(player, 0) + points
 
     sorted_totals = sorted(totals.items(), key=lambda x: x[1], reverse=True)
-    result = [{"Spelare": p, "Totalpoäng": round(v, 1)} for p, v in sorted_totals]
+
+    result = []
+    for p, v in sorted_totals:
+        result.append(lowercase_dict({
+            "Spelare": p,
+            "Totalpoäng": round(v, 1)
+        }))
+
     return jsonify(result)
 
 # ---------------------------------------------------------
@@ -168,7 +180,7 @@ def tour_summary():
 # ---------------------------------------------------------
 @app.route("/version")
 def version():
-    return jsonify({"backend_version": "2026-07-10-01:10"})
+    return jsonify({"backend_version": "2026-07-10-01:20"})
 
 # ---------------------------------------------------------
 # Startpunkt
