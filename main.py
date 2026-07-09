@@ -58,9 +58,6 @@ def safe_sheet(wb, name):
     print(f"Flik saknas: {name}")
     return None, jsonify({"error": f"Fliken '{name}' finns inte."}), 404
 
-# ---------------------------------------------------------
-# Lowercase helper
-# ---------------------------------------------------------
 def lowercase_dict(d):
     return {k.lower(): v for k, v in d.items()}
 
@@ -72,7 +69,7 @@ def health():
     return jsonify({"status": "ok"}), 200
 
 # ---------------------------------------------------------
-# Dashboard-läsare
+# Dashboard-läsare (din layout)
 # ---------------------------------------------------------
 @app.route("/dashboard")
 def dashboard():
@@ -89,14 +86,10 @@ def dashboard():
     def extract_table(label, columns):
         print(f"\nSöker tabell: {label}")
         label_rows = df.index[df.apply(lambda r: r.astype(str).str.contains(label, case=False).any(), axis=1)]
-
         if len(label_rows) == 0:
             print(f"Tabell '{label}' hittades inte.")
             return []
-
         start_row = label_rows[0]
-        print(f"Rubrik hittad på rad: {start_row}")
-
         rows = []
         for offset in range(1, 20):
             r = start_row + offset
@@ -107,28 +100,29 @@ def dashboard():
                 break
             entry = dict(zip(columns, row))
             rows.append(lowercase_dict(entry))
-
         print(f"Tabell '{label}' rader hittade:", len(rows))
         return rows
 
-    topp5 = extract_table("Topp", ["Plac", "Spelare", "Poang"])
-    spelade = extract_table("Spelade", ["Plac", "Spelare", "Antal"])
-    nh = extract_table("Närmast", ["Plac", "Spelare", "Nh"])
-    ld = extract_table("Längsta", ["Plac", "Spelare", "Ld"])
-    vinster = extract_table("Deltävlingsvinster", ["Plac", "Spelare", "Vinster"])
-    landskamper = extract_table("Landskamper", ["Plac", "Lag", "Vinster", "Poang"])
+    topp5 = extract_table("Topp", ["Placering", "Spelare", "Tourpoäng"])
+    nh = extract_table("Närmast", ["Placering", "Spelare", "Nh"])
+    ld = extract_table("Längsta", ["Placering", "Spelare", "Ld"])
+    spelade = extract_table("Spelade", ["Placering", "Spelare", "Antal"])
+    vinster = extract_table("Deltävlingsvinster", ["Placering", "Spelare", "Vinster"])
+    landskamper = extract_table("Landskamper", ["Placering", "Lag", "Vinster", "Poäng"])
+    deltävlingar = extract_table("Deltävlingar", ["Datum", "Klubb"])
 
     return jsonify({
         "topp5": topp5,
-        "spelade": spelade,
         "nh": nh,
         "ld": ld,
+        "spelade": spelade,
         "vinster": vinster,
-        "landskamper": landskamper
+        "landskamper": landskamper,
+        "deltävlingar": deltävlingar
     })
 
 # ---------------------------------------------------------
-# Tourställning — nu också lowercase
+# Tourställning — lowercase och dynamisk
 # ---------------------------------------------------------
 @app.route("/tour")
 def tour_summary():
@@ -137,42 +131,32 @@ def tour_summary():
         return jsonify({"error": wb}), 500
 
     totals = {}
-
     for sheet in wb.sheet_names:
         name = sheet.lower()
-
         if name in ["dashboard", "tourställning"]:
             continue
         if name.startswith("deltävling"):
-            continue
-
-        df, err, code = safe_sheet(wb, sheet)
-        if err:
-            continue
-
-        try:
-            main_table = df.iloc[3:13, 0:9]
-            main_table.columns = ["Plac", "Spelare", "HCP", "PB", "NH", "LD", "Bonus", "Tot", "Tourpoäng"]
-            main_table = main_table.fillna("")
-        except Exception:
-            continue
-
-        for _, row in main_table.iterrows():
-            player = str(row["Spelare"]).strip()
-            points = row["Tourpoäng"]
-            if not isinstance(points, (int, float)):
+            df, err, code = safe_sheet(wb, sheet)
+            if err:
                 continue
-            totals[player] = totals.get(player, 0) + points
+            try:
+                # Läs dynamiskt från rad 4 tills tom rad
+                start_row = 3
+                end_row = len(df)
+                main_table = df.iloc[start_row:end_row, 0:9]
+                main_table.columns = ["Plac", "Spelare", "HCP", "PB", "NH", "LD", "Bonus", "Tot", "Tourpoäng"]
+                main_table = main_table.fillna("")
+            except Exception:
+                continue
+            for _, row in main_table.iterrows():
+                player = str(row["Spelare"]).strip()
+                points = row["Tourpoäng"]
+                if not isinstance(points, (int, float)):
+                    continue
+                totals[player] = totals.get(player, 0) + points
 
     sorted_totals = sorted(totals.items(), key=lambda x: x[1], reverse=True)
-
-    result = []
-    for p, v in sorted_totals:
-        result.append(lowercase_dict({
-            "Spelare": p,
-            "Totalpoäng": round(v, 1)
-        }))
-
+    result = [lowercase_dict({"Spelare": p, "Totalpoäng": round(v, 1)}) for p, v in sorted_totals]
     return jsonify(result)
 
 # ---------------------------------------------------------
@@ -180,7 +164,7 @@ def tour_summary():
 # ---------------------------------------------------------
 @app.route("/version")
 def version():
-    return jsonify({"backend_version": "2026-07-10-01:20"})
+    return jsonify({"backend_version": "2026-07-10-01:30"})
 
 # ---------------------------------------------------------
 # Startpunkt
