@@ -36,13 +36,10 @@ _cache_timestamp = 0
 # Hjälpfunktioner
 # ---------------------------------------------------------
 def load_workbook():
-    """Laddar Excel från Drive med caching."""
     global _cache_workbook, _cache_timestamp
     now = time.time()
-
     if _cache_workbook is not None and (now - _cache_timestamp) < CACHE_TTL:
         return _cache_workbook
-
     try:
         wb = pd.ExcelFile(FILE_URL)
         _cache_workbook = wb
@@ -54,7 +51,6 @@ def load_workbook():
         return str(e)
 
 def safe_sheet(wb, name):
-    """Hittar flik baserat på startswith."""
     for sheet in wb.sheet_names:
         if sheet.lower().startswith(name.lower()):
             print(f"Flik hittad: {sheet}")
@@ -70,7 +66,7 @@ def health():
     return jsonify({"status": "ok"}), 200
 
 # ---------------------------------------------------------
-# Dynamisk Dashboard
+# Dashboard-läsare
 # ---------------------------------------------------------
 @app.route("/dashboard")
 def dashboard():
@@ -82,13 +78,11 @@ def dashboard():
     if err:
         return err, code
 
-    # -----------------------------------------------------
-    # Dynamisk tabell-läsare
-    # -----------------------------------------------------
+    # Rensa bort helt tomma rader
+    df = df.dropna(how="all")
+
     def extract_table(label, columns):
         print(f"\nSöker tabell: {label}")
-
-        # Hitta rad där label förekommer
         label_rows = df.index[df.apply(lambda r: r.astype(str).str.contains(label, case=False).any(), axis=1)]
 
         if len(label_rows) == 0:
@@ -98,25 +92,20 @@ def dashboard():
         start_row = label_rows[0]
         print(f"Rubrik hittad på rad: {start_row}")
 
-        # Tabellen börjar normalt 1–2 rader under rubriken
         rows = []
-        for offset in range(1, 15):  # läs max 15 rader
+        for offset in range(1, 20):  # läs upp till 20 rader
             r = start_row + offset
+            if r >= len(df):
+                break
             row = df.iloc[r, :].dropna().tolist()
-
-            # Stoppa när rad inte matchar antal kolumner
             if len(row) < len(columns):
                 break
-
             entry = dict(zip(columns, row))
             rows.append(entry)
 
         print(f"Tabell '{label}' rader hittade:", len(rows))
         return rows
 
-    # -----------------------------------------------------
-    # Läs alla Dashboard-tabeller
-    # -----------------------------------------------------
     topp5 = extract_table("Topp", ["Plac", "Spelare", "Poang"])
     spelade = extract_table("Spelade", ["Plac", "Spelare", "Antal"])
     nh = extract_table("Närmast", ["Plac", "Spelare", "Nh"])
@@ -143,26 +132,21 @@ def tour_summary():
         return jsonify({"error": wb}), 500
 
     totals = {}
-
     for sheet in wb.sheet_names:
         name = sheet.lower()
-
         if name in ["dashboard", "tourställning"]:
             continue
         if name.startswith("deltävling"):
             continue
-
         df, err, code = safe_sheet(wb, sheet)
         if err:
             continue
-
         try:
             main_table = df.iloc[3:13, 0:9]
             main_table.columns = ["Plac", "Spelare", "HCP", "PB", "NH", "LD", "Bonus", "Tot", "Tourpoäng"]
             main_table = main_table.fillna("")
         except Exception:
             continue
-
         for _, row in main_table.iterrows():
             player = str(row["Spelare"]).strip()
             points = row["Tourpoäng"]
@@ -172,7 +156,6 @@ def tour_summary():
 
     sorted_totals = sorted(totals.items(), key=lambda x: x[1], reverse=True)
     result = [{"Spelare": p, "Totalpoäng": round(v, 1)} for p, v in sorted_totals]
-
     return jsonify(result)
 
 # ---------------------------------------------------------
@@ -180,7 +163,7 @@ def tour_summary():
 # ---------------------------------------------------------
 @app.route("/version")
 def version():
-    return jsonify({"backend_version": "2026-07-10-00:45"})
+    return jsonify({"backend_version": "2026-07-10-01:00"})
 
 # ---------------------------------------------------------
 # Startpunkt
