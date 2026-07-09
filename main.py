@@ -69,7 +69,7 @@ def health():
     return jsonify({"status": "ok"}), 200
 
 # ---------------------------------------------------------
-# Dashboard-läsare (din layout)
+# Dashboard-läsare (med rubrikstop)
 # ---------------------------------------------------------
 @app.route("/dashboard")
 def dashboard():
@@ -83,23 +83,30 @@ def dashboard():
 
     df = df.dropna(how="all")
 
+    # Lista över rubriker som markerar nästa tabell
+    headers = ["Topp", "Närmast", "Längsta", "Spelade", "Deltävlingsvinster", "Landskamper", "Deltävlingar"]
+
     def extract_table(label, columns):
         print(f"\nSöker tabell: {label}")
         label_rows = df.index[df.apply(lambda r: r.astype(str).str.contains(label, case=False).any(), axis=1)]
         if len(label_rows) == 0:
             print(f"Tabell '{label}' hittades inte.")
             return []
+
         start_row = label_rows[0]
+        # Hitta nästa rubrikrad
+        next_rows = df.index[df.apply(lambda r: r.astype(str).str.contains("|".join(headers), case=False).any(), axis=1)]
+        next_rows = [r for r in next_rows if r > start_row]
+        end_row = next_rows[0] if next_rows else len(df)
+
         rows = []
-        for offset in range(1, 20):
-            r = start_row + offset
-            if r >= len(df):
-                break
+        for r in range(start_row + 1, end_row):
             row = df.iloc[r, :].dropna().tolist()
             if len(row) < len(columns):
-                break
+                continue
             entry = dict(zip(columns, row))
             rows.append(lowercase_dict(entry))
+
         print(f"Tabell '{label}' rader hittade:", len(rows))
         return rows
 
@@ -122,7 +129,7 @@ def dashboard():
     })
 
 # ---------------------------------------------------------
-# Tourställning — lowercase och dynamisk
+# Tourställning — dynamisk och lowercase
 # ---------------------------------------------------------
 @app.route("/tour")
 def tour_summary():
@@ -140,7 +147,6 @@ def tour_summary():
             if err:
                 continue
             try:
-                # Läs dynamiskt från rad 4 tills tom rad
                 start_row = 3
                 end_row = len(df)
                 main_table = df.iloc[start_row:end_row, 0:9]
@@ -164,7 +170,7 @@ def tour_summary():
 # ---------------------------------------------------------
 @app.route("/version")
 def version():
-    return jsonify({"backend_version": "2026-07-10-01:30"})
+    return jsonify({"backend_version": "2026-07-10-01:55"})
 
 # ---------------------------------------------------------
 # Startpunkt
