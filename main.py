@@ -28,21 +28,16 @@ def handle_options():
         return response
 
 # ---------------------------------------------------------
-# CORS TEST ROUTE — visar headers direkt i webbläsaren
+# 🟩 CORS JSON TEST — visar headers direkt i Chrome
 # ---------------------------------------------------------
-@app.route("/cors-test")
-def cors_test():
-    response = make_response(jsonify({
-        "message": "CORS headers test",
-        "note": "Scroll up in browser to see headers"
-    }), 200)
-
-    response.headers["Access-Control-Allow-Origin"] = "https://bentus-touren-frontend.onrender.com"
-    response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
-    response.headers["Access-Control-Allow-Methods"] = "GET, OPTIONS"
-    response.headers["Access-Control-Max-Age"] = "3600"
-
-    return response
+@app.route("/cors-json")
+def cors_json():
+    return jsonify({
+        "Access-Control-Allow-Origin": "https://bentus-touren-frontend.onrender.com",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        "Access-Control-Allow-Methods": "GET, OPTIONS",
+        "Access-Control-Max-Age": "3600"
+    })
 
 # ---------------------------------------------------------
 # Konfiguration
@@ -238,7 +233,7 @@ def tour_summary():
 # ---------------------------------------------------------
 @app.route("/version")
 def version():
-    return jsonify({"backend_version": "2026-07-09-22:42"})
+    return jsonify({"backend_version": "2026-07-09-23:05"})
 
 # ---------------------------------------------------------
 # Startpunkt
