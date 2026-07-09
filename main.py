@@ -59,6 +59,12 @@ def safe_sheet(wb, name):
     return None, jsonify({"error": f"Fliken '{name}' finns inte."}), 404
 
 # ---------------------------------------------------------
+# Lowercase helper
+# ---------------------------------------------------------
+def lowercase_dict(d):
+    return {k.lower(): v for k, v in d.items()}
+
+# ---------------------------------------------------------
 # Hälsokontroll
 # ---------------------------------------------------------
 @app.route("/")
@@ -78,7 +84,6 @@ def dashboard():
     if err:
         return err, code
 
-    # Rensa bort helt tomma rader
     df = df.dropna(how="all")
 
     def extract_table(label, columns):
@@ -93,7 +98,7 @@ def dashboard():
         print(f"Rubrik hittad på rad: {start_row}")
 
         rows = []
-        for offset in range(1, 20):  # läs upp till 20 rader
+        for offset in range(1, 20):
             r = start_row + offset
             if r >= len(df):
                 break
@@ -101,7 +106,7 @@ def dashboard():
             if len(row) < len(columns):
                 break
             entry = dict(zip(columns, row))
-            rows.append(entry)
+            rows.append(lowercase_dict(entry))
 
         print(f"Tabell '{label}' rader hittade:", len(rows))
         return rows
@@ -163,7 +168,7 @@ def tour_summary():
 # ---------------------------------------------------------
 @app.route("/version")
 def version():
-    return jsonify({"backend_version": "2026-07-10-01:00"})
+    return jsonify({"backend_version": "2026-07-10-01:10"})
 
 # ---------------------------------------------------------
 # Startpunkt
