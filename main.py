@@ -16,7 +16,6 @@ def add_cors_headers(response):
     response.headers["Access-Control-Max-Age"] = "3600"
     return response
 
-# 🟩 Fångar alla OPTIONS-anrop innan Flask försöker matcha route
 @app.before_request
 def handle_options():
     if request.method == "OPTIONS":
@@ -28,7 +27,7 @@ def handle_options():
         return response
 
 # ---------------------------------------------------------
-# 🟩 CORS JSON TEST — visar headers direkt i Chrome
+# CORS JSON TEST
 # ---------------------------------------------------------
 @app.route("/cors-json")
 def cors_json():
@@ -66,9 +65,11 @@ def load_workbook():
         return str(e)
 
 def safe_sheet(wb, name):
-    if name not in wb.sheet_names:
-        return None, jsonify({"error": f"Fliken '{name}' finns inte."}), 404
-    return wb.parse(name, header=None), None, None
+    # Gör sökningen flexibel
+    for sheet in wb.sheet_names:
+        if sheet.lower().startswith(name.lower()):
+            return wb.parse(sheet, header=None), None, None
+    return None, jsonify({"error": f"Fliken '{name}' finns inte."}), 404
 
 def is_event_sheet(df):
     players = df.iloc[3:13, 1]
@@ -94,7 +95,6 @@ def list_events():
     events = []
     for sheet in wb.sheet_names:
         name = sheet.lower()
-
         if name in ["dashboard", "tourställning"]:
             continue
         if name.startswith("deltävling"):
@@ -126,6 +126,7 @@ def event_main(name):
         main_table = df.iloc[3:13, 0:9]
         main_table.columns = ["Plac", "Spelare", "HCP", "PB", "NH", "LD", "Bonus", "Tot", "Tourpoäng"]
         main_table = main_table.dropna(subset=["Spelare"])
+        main_table = main_table.fillna("")  # 🟩 Fix
     except Exception:
         main_table = pd.DataFrame(columns=["Plac", "Spelare", "HCP", "PB", "NH", "LD", "Bonus", "Tot", "Tourpoäng"])
 
@@ -133,6 +134,7 @@ def event_main(name):
         team_table = df.iloc[21:27, 16:20]
         team_table.columns = ["Lag", "Resultat", "Plac", "Bonus"]
         team_table = team_table.dropna(subset=["Lag"])
+        team_table = team_table.fillna("")  # 🟩 Fix
     except Exception:
         team_table = pd.DataFrame(columns=["Lag", "Resultat", "Plac", "Bonus"])
 
@@ -159,6 +161,7 @@ def event_nh(name):
         nh_table = df.iloc[20:26, 0:2]
         nh_table.columns = ["Hål", "Vinnare"]
         nh_table = nh_table.dropna(subset=["Hål"])
+        nh_table = nh_table.fillna("")  # 🟩 Fix
     except Exception:
         nh_table = pd.DataFrame(columns=["Hål", "Vinnare"])
 
@@ -181,6 +184,7 @@ def event_ld(name):
         ld_table = df.iloc[20:26, 3:5]
         ld_table.columns = ["Hål", "Vinnare"]
         ld_table = ld_table.dropna(subset=["Hål"])
+        ld_table = ld_table.fillna("")  # 🟩 Fix
     except Exception:
         ld_table = pd.DataFrame(columns=["Hål", "Vinnare"])
 
@@ -211,6 +215,7 @@ def tour_summary():
         try:
             main_table = df.iloc[3:13, 0:9]
             main_table.columns = ["Plac", "Spelare", "HCP", "PB", "NH", "LD", "Bonus", "Tot", "Tourpoäng"]
+            main_table = main_table.fillna("")  # 🟩 Fix
         except Exception:
             continue
 
@@ -229,11 +234,11 @@ def tour_summary():
     return jsonify(result)
 
 # ---------------------------------------------------------
-# Version (fingerprint)
+# Version
 # ---------------------------------------------------------
 @app.route("/version")
 def version():
-    return jsonify({"backend_version": "2026-07-09-23:05"})
+    return jsonify({"backend_version": "2026-07-09-23:20"})
 
 # ---------------------------------------------------------
 # Startpunkt
