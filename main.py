@@ -48,7 +48,6 @@ def safe_sheet(wb, name):
     for sheet in wb.sheet_names:
         if sheet.lower().startswith(name.lower()):
             df = wb.parse(sheet, header=None)
-            # fyll ut sammanfogade rubriker över tomma celler
             df = df.fillna(method="ffill", axis=1)
             return df, None, None
     return None, jsonify({"error": f"Fliken '{name}' finns inte."}), 404
@@ -113,7 +112,6 @@ def dashboard():
 
         start_row = label_rows[0]
 
-        # hitta kolumnraden
         col_row = None
         for r in range(start_row + 1, len(df)):
             row_text = " ".join(df.iloc[r, :].astype(str)).lower()
@@ -124,7 +122,6 @@ def dashboard():
         if col_row is None:
             col_row = start_row
 
-        # hitta nästa rubrikrad
         end_row = len(df)
         for r in range(col_row + 1, len(df)):
             row_text = " ".join(df.iloc[r, :].astype(str))
@@ -137,14 +134,17 @@ def dashboard():
             row = df.iloc[r, :].dropna().tolist()
             if not row or all(str(x).strip() == "" for x in row):
                 continue
-            if any(str(x).lower() in ["placering", "spelare", "lag", "datum", "klubb"] for x in row):
+
+            # 🟩 PATCH: hoppa över rubrikrader, inte kolumnrader
+            if any(fuzzy_match(str(x), h) for h in headers):
                 continue
+
             if len(row) < len(columns):
                 continue
+
             entry = dict(zip(columns, row))
             rows.append(lowercase_dict(entry))
 
-        # fallback för korta tabeller
         if not rows and col_row + 1 < len(df):
             for r in range(col_row + 1, min(col_row + 3, len(df))):
                 row = df.iloc[r, :].dropna().tolist()
@@ -174,7 +174,7 @@ def dashboard():
 
 @app.route("/version")
 def version():
-    return jsonify({"backend_version": "2026-07-10-10:25"})
+    return jsonify({"backend_version": "2026-07-10-10:40"})
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
