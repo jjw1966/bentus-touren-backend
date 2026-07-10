@@ -60,6 +60,10 @@ def normalize_text(text):
     text = re.sub(r"[^a-z0-9]", "", text)
     return text
 
+def fuzzy_match(a, b):
+    """Return True if normalized strings share common prefix."""
+    return normalize_text(a).startswith(normalize_text(b)) or normalize_text(b).startswith(normalize_text(a))
+
 def to_number(value):
     try:
         if pd.isna(value):
@@ -118,16 +122,17 @@ def dashboard():
         if col_row is None:
             return []
 
-        next_rows = df.index[
-            df.apply(lambda r: any(normalize_text(x) in headers for x in r.astype(str)), axis=1)
-        ]
-        next_rows = [r for r in next_rows if r > col_row]
-        end_row = next_rows[0] if next_rows else len(df)
+        # hitta nästa rubrikrad
+        end_row = len(df)
+        for r in range(col_row + 1, len(df)):
+            row_text = " ".join(df.iloc[r, :].astype(str))
+            if any(fuzzy_match(row_text, h) for h in headers):
+                end_row = r
+                break
 
         rows = []
         for r in range(col_row + 1, end_row):
             row = df.iloc[r, :].dropna().tolist()
-            # hoppa över tomma eller kolumnrader
             if not row or all(str(x).strip() == "" for x in row):
                 continue
             if any(str(x).lower() in ["placering", "spelare", "lag", "datum", "klubb"] for x in row):
@@ -199,7 +204,7 @@ def tour_summary():
 
 @app.route("/version")
 def version():
-    return jsonify({"backend_version": "2026-07-10-03:20"})
+    return jsonify({"backend_version": "2026-07-10-03:45"})
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
