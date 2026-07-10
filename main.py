@@ -142,6 +142,14 @@ def dashboard():
             entry = dict(zip(columns, row))
             rows.append(lowercase_dict(entry))
 
+        # fallback: om inga rader hittades, läs de två följande raderna
+        if not rows and col_row + 1 < len(df):
+            for r in range(col_row + 1, min(col_row + 3, len(df))):
+                row = df.iloc[r, :].dropna().tolist()
+                if len(row) >= len(columns):
+                    entry = dict(zip(columns, row))
+                    rows.append(lowercase_dict(entry))
+
         return rows
 
     topp5 = extract_table("topp", ["Placering", "Spelare", "Tourpoäng"])
@@ -204,7 +212,7 @@ def tour_summary():
 
 @app.route("/version")
 def version():
-    return jsonify({"backend_version": "2026-07-10-03:52"})
+    return jsonify({"backend_version": "2026-07-10-04:53"})
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
