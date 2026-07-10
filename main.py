@@ -38,8 +38,10 @@ _cache_timestamp = 0
 def load_workbook():
     global _cache_workbook, _cache_timestamp
     now = time.time()
+
     if _cache_workbook is not None and (now - _cache_timestamp) < CACHE_TTL:
         return _cache_workbook
+
     try:
         wb = pd.ExcelFile(FILE_URL)
         _cache_workbook = wb
@@ -55,6 +57,7 @@ def safe_sheet(wb, name):
         if sheet.lower().startswith(name.lower()):
             print(f"Flik hittad: {sheet}")
             return wb.parse(sheet, header=None), None, None
+
     print(f"Flik saknas: {name}")
     return None, jsonify({"error": f"Fliken '{name}' finns inte."}), 404
 
@@ -62,7 +65,6 @@ def lowercase_dict(d):
     return {k.lower(): v for k, v in d.items()}
 
 def to_number(value):
-    """Konverterar text till tal om möjligt."""
     try:
         if pd.isna(value):
             return None
@@ -81,7 +83,7 @@ def health():
     return jsonify({"status": "ok"}), 200
 
 # ---------------------------------------------------------
-# Dashboard-läsare (kolumnrad-fix)
+# Dashboard-läsare
 # ---------------------------------------------------------
 @app.route("/dashboard")
 def dashboard():
@@ -95,22 +97,39 @@ def dashboard():
 
     df = df.dropna(how="all")
 
-    headers = ["Topp", "Närmast", "Längsta", "Spelade", "Deltävlingsvinster", "Landskamper", "Deltävlingar"]
+    headers = [
+        "Topp",
+        "Närmast",
+        "Längsta",
+        "Spelade",
+        "Deltävlingsvinster",
+        "Landskamper",
+        "Deltävlingar"
+    ]
 
     def extract_table(label, columns):
         print(f"\nSöker tabell: {label}")
-        label_rows = df.index[df.apply(lambda r: r.astype(str).str.contains(label, case=False).any(), axis=1)]
+
+        label_rows = df.index[
+            df.apply(lambda r: r.astype(str).str.contains(label, case=False).any(), axis=1)
+        ]
+
         if len(label_rows) == 0:
             print(f"Tabell '{label}' hittades inte.")
             return []
 
         start_row = label_rows[0]
         col_row = start_row + 1
-        next_rows = df.index[df.apply(lambda r: r.astype(str).str.contains("|".join(headers), case=False).any(), axis=1)]
+
+        next_rows = df.index[
+            df.apply(lambda r: r.astype(str).str.contains("|".join(headers), case=False).any(), axis=1)
+        ]
         next_rows = [r for r in next_rows if r > start_row]
+
         end_row = next_rows[0] if next_rows else len(df)
 
         rows = []
+
         for r in range(col_row + 1, end_row):
             row = df.iloc[r, :].dropna().tolist()
             if len(row) < len(columns):
@@ -140,7 +159,7 @@ def dashboard():
     })
 
 # ---------------------------------------------------------
-# Tourställning — dynamisk och numerisk konvertering
+# Tourställning
 # ---------------------------------------------------------
 @app.route("/tour")
 def tour_summary():
@@ -149,10 +168,58 @@ def tour_summary():
         return jsonify({"error": wb}), 500
 
     totals = {}
+
     for sheet in wb.sheet_names:
         name = sheet.lower()
+
         if name in ["dashboard", "tourställning"]:
             continue
+
         if name.startswith("deltävling"):
             df, err, code = safe_sheet(wb, sheet)
             if err:
+                continue
+
+            try:
+                start_row = 3
+                end_row = len(df)
+
+                main_table = df.iloc[start_row:end_row, 0:9]
+                main_table.columns = [
+                    "Plac", "Spelare", "HCP", "PB", "NH",
+                    "LD", "Bonus", "Tot", "Tourpoäng"
+                ]
+                main_table = main_table.fillna("")
+            except Exception:
+                continue
+
+            for _, row in main_table.iterrows():
+                player = str(row["Spelare"]).strip()
+                points = to_number(row["Tourpoäng"])
+
+                if points is None:
+                    continue
+
+                totals[player] = totals.get(player, 0) + points
+
+    sorted_totals = sorted(totals.items(), key=lambda x: x[1], reverse=True)
+
+    result = [
+        lowercase_dict({"Spelare": p, "Totalpoäng": round(v, 1)})
+        for p, v in sorted_totals
+    ]
+
+    return jsonify(result)
+
+# ---------------------------------------------------------
+# Version
+# ---------------------------------------------------------
+@app.route("/version")
+def version():
+    return jsonify({"backend_version": "2026-07-10-02:25"})
+
+# ---------------------------------------------------------
+# Startpunkt
+# ---------------------------------------------------------
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=10000)
