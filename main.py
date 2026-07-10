@@ -61,6 +61,18 @@ def safe_sheet(wb, name):
 def lowercase_dict(d):
     return {k.lower(): v for k, v in d.items()}
 
+def to_number(value):
+    """Konverterar text till tal om möjligt."""
+    try:
+        if pd.isna(value):
+            return None
+        if isinstance(value, (int, float)):
+            return value
+        value = str(value).strip().replace(",", ".")
+        return float(value)
+    except Exception:
+        return None
+
 # ---------------------------------------------------------
 # Hälsokontroll
 # ---------------------------------------------------------
@@ -93,7 +105,6 @@ def dashboard():
             return []
 
         start_row = label_rows[0]
-        # Hitta kolumnraden (nästa rad efter rubriken)
         col_row = start_row + 1
         next_rows = df.index[df.apply(lambda r: r.astype(str).str.contains("|".join(headers), case=False).any(), axis=1)]
         next_rows = [r for r in next_rows if r > start_row]
@@ -129,7 +140,7 @@ def dashboard():
     })
 
 # ---------------------------------------------------------
-# Tourställning — dynamisk och lowercase
+# Tourställning — dynamisk och numerisk konvertering
 # ---------------------------------------------------------
 @app.route("/tour")
 def tour_summary():
@@ -145,35 +156,3 @@ def tour_summary():
         if name.startswith("deltävling"):
             df, err, code = safe_sheet(wb, sheet)
             if err:
-                continue
-            try:
-                start_row = 3
-                end_row = len(df)
-                main_table = df.iloc[start_row:end_row, 0:9]
-                main_table.columns = ["Plac", "Spelare", "HCP", "PB", "NH", "LD", "Bonus", "Tot", "Tourpoäng"]
-                main_table = main_table.fillna("")
-            except Exception:
-                continue
-            for _, row in main_table.iterrows():
-                player = str(row["Spelare"]).strip()
-                points = row["Tourpoäng"]
-                if not isinstance(points, (int, float)):
-                    continue
-                totals[player] = totals.get(player, 0) + points
-
-    sorted_totals = sorted(totals.items(), key=lambda x: x[1], reverse=True)
-    result = [lowercase_dict({"Spelare": p, "Totalpoäng": round(v, 1)}) for p, v in sorted_totals]
-    return jsonify(result)
-
-# ---------------------------------------------------------
-# Version
-# ---------------------------------------------------------
-@app.route("/version")
-def version():
-    return jsonify({"backend_version": "2026-07-10-02:00"})
-
-# ---------------------------------------------------------
-# Startpunkt
-# ---------------------------------------------------------
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=10000)
