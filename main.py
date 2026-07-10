@@ -61,7 +61,7 @@ def load_workbook():
 def safe_sheet(wb, name):
     name_norm = name.lower()
     for sheet in wb.sheet_names:
-        if name_norm in sheet.lower():
+        if name_norm in sheet.lower():   # ← matchar även "Dashboard 2026"
             print("Using sheet:", sheet)
             df = wb.parse(sheet, header=None)
             df = df.fillna(method="ffill", axis=1)
@@ -187,7 +187,7 @@ def dashboard():
 
 @app.route("/version")
 def version():
-    return jsonify({"backend_version": "2026-07-10-14:00"})
+    return jsonify({"backend_version": "2026-07-10-14:10"})
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
