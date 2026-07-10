@@ -47,7 +47,10 @@ def load_workbook():
 def safe_sheet(wb, name):
     for sheet in wb.sheet_names:
         if sheet.lower().startswith(name.lower()):
-            return wb.parse(sheet, header=None), None, None
+            df = wb.parse(sheet, header=None)
+            # fyll ut sammanfogade rubriker över tomma celler
+            df = df.fillna(method="ffill", axis=1)
+            return df, None, None
     return None, jsonify({"error": f"Fliken '{name}' finns inte."}), 404
 
 def lowercase_dict(d):
@@ -118,7 +121,6 @@ def dashboard():
                 col_row = r
                 break
 
-        # fallback om kolumnrad saknas
         if col_row is None:
             col_row = start_row
 
@@ -142,7 +144,7 @@ def dashboard():
             entry = dict(zip(columns, row))
             rows.append(lowercase_dict(entry))
 
-        # fallback: om inga rader hittades, läs de två följande raderna
+        # fallback för korta tabeller
         if not rows and col_row + 1 < len(df):
             for r in range(col_row + 1, min(col_row + 3, len(df))):
                 row = df.iloc[r, :].dropna().tolist()
@@ -170,49 +172,9 @@ def dashboard():
         "deltävlingar": deltävlingar
     })
 
-@app.route("/tour")
-def tour_summary():
-    wb = load_workbook()
-    if isinstance(wb, str):
-        return jsonify({"error": wb}), 500
-
-    totals = {}
-    for sheet in wb.sheet_names:
-        name = sheet.lower()
-        if name in ["dashboard", "tourställning"]:
-            continue
-        if name.startswith("deltävling"):
-            df, err, code = safe_sheet(wb, sheet)
-            if err:
-                continue
-            try:
-                start_row = 3
-                end_row = len(df)
-                main_table = df.iloc[start_row:end_row, 0:9]
-                main_table.columns = [
-                    "Plac", "Spelare", "HCP", "PB", "NH",
-                    "LD", "Bonus", "Tot", "Tourpoäng"
-                ]
-                main_table = main_table.fillna("")
-            except Exception:
-                continue
-            for _, row in main_table.iterrows():
-                player = str(row["Spelare"]).strip()
-                points = to_number(row["Tourpoäng"])
-                if points is None:
-                    continue
-                totals[player] = totals.get(player, 0) + points
-
-    sorted_totals = sorted(totals.items(), key=lambda x: x[1], reverse=True)
-    result = [
-        lowercase_dict({"Spelare": p, "Totalpoäng": round(v, 1)})
-        for p, v in sorted_totals
-    ]
-    return jsonify(result)
-
 @app.route("/version")
 def version():
-    return jsonify({"backend_version": "2026-07-10-04:53"})
+    return jsonify({"backend_version": "2026-07-10-10:25"})
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
