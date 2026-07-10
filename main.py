@@ -26,6 +26,11 @@ def handle_options():
         response.headers["Access-Control-Max-Age"] = "3600"
         return response
 
+# Health check for Render
+@app.route("/health")
+def health_check():
+    return jsonify({"status": "ok"}), 200
+
 FILE_URL = "https://docs.google.com/spreadsheets/d/1oBF2HfyMOp1xjGAcuUrduvgds4ToyuQz/export?format=xlsx"
 CACHE_TTL = 300
 _cache_workbook = None
@@ -135,7 +140,7 @@ def dashboard():
             if not row or all(str(x).strip() == "" for x in row):
                 continue
 
-            # 🟩 PATCH: hoppa över rubrikrader, inte kolumnrader
+            # PATCH: hoppa över rubrikrader, inte kolumnrader
             if any(fuzzy_match(str(x), h) for h in headers):
                 continue
 
@@ -174,7 +179,7 @@ def dashboard():
 
 @app.route("/version")
 def version():
-    return jsonify({"backend_version": "2026-07-10-10:40"})
+    return jsonify({"backend_version": "2026-07-10-11:00"})
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
