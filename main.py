@@ -69,7 +69,7 @@ def health():
     return jsonify({"status": "ok"}), 200
 
 # ---------------------------------------------------------
-# Dashboard-läsare (med rubrikstop)
+# Dashboard-läsare (kolumnrad-fix)
 # ---------------------------------------------------------
 @app.route("/dashboard")
 def dashboard():
@@ -83,7 +83,6 @@ def dashboard():
 
     df = df.dropna(how="all")
 
-    # Lista över rubriker som markerar nästa tabell
     headers = ["Topp", "Närmast", "Längsta", "Spelade", "Deltävlingsvinster", "Landskamper", "Deltävlingar"]
 
     def extract_table(label, columns):
@@ -94,13 +93,14 @@ def dashboard():
             return []
 
         start_row = label_rows[0]
-        # Hitta nästa rubrikrad
+        # Hitta kolumnraden (nästa rad efter rubriken)
+        col_row = start_row + 1
         next_rows = df.index[df.apply(lambda r: r.astype(str).str.contains("|".join(headers), case=False).any(), axis=1)]
         next_rows = [r for r in next_rows if r > start_row]
         end_row = next_rows[0] if next_rows else len(df)
 
         rows = []
-        for r in range(start_row + 1, end_row):
+        for r in range(col_row + 1, end_row):
             row = df.iloc[r, :].dropna().tolist()
             if len(row) < len(columns):
                 continue
@@ -170,7 +170,7 @@ def tour_summary():
 # ---------------------------------------------------------
 @app.route("/version")
 def version():
-    return jsonify({"backend_version": "2026-07-10-01:55"})
+    return jsonify({"backend_version": "2026-07-10-02:00"})
 
 # ---------------------------------------------------------
 # Startpunkt
