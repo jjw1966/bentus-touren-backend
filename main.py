@@ -54,11 +54,10 @@ def lowercase_dict(d):
     return {k.lower(): v for k, v in d.items()}
 
 def normalize_text(text):
-    """Tar bort siffror, mellanslag och diakritiska tecken för robust matchning."""
     text = str(text).lower()
     text = unicodedata.normalize("NFKD", text)
     text = "".join(c for c in text if not unicodedata.combining(c))
-    text = re.sub(r"[^a-z]", "", text)
+    text = re.sub(r"[^a-z0-9]", "", text)
     return text
 
 def to_number(value):
@@ -100,6 +99,7 @@ def dashboard():
 
     def extract_table(label, columns):
         label_norm = normalize_text(label)
+
         label_rows = df.index[
             df.apply(lambda r: any(label_norm in normalize_text(x) for x in r.astype(str)), axis=1)
         ]
@@ -107,12 +107,22 @@ def dashboard():
             return []
 
         start_row = label_rows[0]
-        col_row = start_row + 1
+
+        # hitta kolumnraden (den som innehåller Placering, Spelare etc)
+        col_row = None
+        for r in range(start_row + 1, len(df)):
+            row_text = " ".join(df.iloc[r, :].astype(str))
+            if "placering" in row_text.lower() or "spelare" in row_text.lower():
+                col_row = r
+                break
+
+        if col_row is None:
+            return []
 
         next_rows = df.index[
             df.apply(lambda r: any(normalize_text(x) in headers for x in r.astype(str)), axis=1)
         ]
-        next_rows = [r for r in next_rows if r > start_row]
+        next_rows = [r for r in next_rows if r > col_row]
         end_row = next_rows[0] if next_rows else len(df)
 
         rows = []
@@ -122,6 +132,7 @@ def dashboard():
                 continue
             entry = dict(zip(columns, row))
             rows.append(lowercase_dict(entry))
+
         return rows
 
     topp5 = extract_table("topp", ["Placering", "Spelare", "Tourpoäng"])
@@ -149,6 +160,7 @@ def tour_summary():
         return jsonify({"error": wb}), 500
 
     totals = {}
+
     for sheet in wb.sheet_names:
         name = sheet.lower()
         if name in ["dashboard", "tourställning"]:
