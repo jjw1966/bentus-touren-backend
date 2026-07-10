@@ -14,11 +14,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 🟩 Hjälpfunktion för att läsa tabeller dynamiskt
+# 🟩 Dynamisk tabell-läsare (fungerar för alla flikar)
 def read_table(sheet, header_text):
     header_row = None
+
+    # Hitta rubrikraden
     for i, row in enumerate(sheet.iter_rows(values_only=True)):
-        if row and str(row[0]).strip().startswith(header_text):
+        if row and isinstance(row[0], str) and row[0].strip().startswith(header_text):
             header_row = i + 1  # kolumnrad ligger direkt under rubriken
             break
 
@@ -39,7 +41,7 @@ def read_table(sheet, header_text):
     return data
 
 
-# 🟩 Endpoint för dashboard
+# 🟩 Dashboard-endpoint
 @app.get("/dashboard")
 def get_dashboard():
     wb = load_workbook("BentusTouren.xlsx", data_only=True)
@@ -55,15 +57,29 @@ def get_dashboard():
         "deltavlingar": read_table(sheet, "Deltävlingar"),
     }
 
-    # Konvertera datum till ISO-format
+    # Konvertera datum i deltävlingar
     for d in dashboard.get("deltavlingar", []):
-        try:
-            if isinstance(d["Datum"], datetime):
-                d["Datum"] = d["Datum"].strftime("%Y-%m-%d")
-        except Exception:
-            pass
+        if "Datum" in d and isinstance(d["Datum"], datetime):
+            d["Datum"] = d["Datum"].strftime("%Y-%m-%d")
 
     return dashboard
+
+
+# 🟩 NY: Tourställning-endpoint
+@app.get("/tourstallning")
+def get_tourstallning():
+    wb = load_workbook("BentusTouren.xlsx", data_only=True)
+    sheet = wb["Tourställning"]
+
+    tour = {
+        "tourstallning": read_table(sheet, "Tourställning"),
+        "poang": read_table(sheet, "Poäng"),
+        "rundor": read_table(sheet, "Rundor"),
+        "vinster": read_table(sheet, "Vinster"),
+        "statistik": read_table(sheet, "Statistik"),
+    }
+
+    return tour
 
 
 # 🟩 Root-endpoint
