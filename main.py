@@ -99,7 +99,6 @@ def dashboard():
 
     def extract_table(label, columns):
         label_norm = normalize_text(label)
-
         label_rows = df.index[
             df.apply(lambda r: any(label_norm in normalize_text(x) for x in r.astype(str)), axis=1)
         ]
@@ -108,11 +107,11 @@ def dashboard():
 
         start_row = label_rows[0]
 
-        # hitta kolumnraden (den som innehåller Placering, Spelare etc)
+        # hitta kolumnraden
         col_row = None
         for r in range(start_row + 1, len(df)):
             row_text = " ".join(df.iloc[r, :].astype(str))
-            if "placering" in row_text.lower() or "spelare" in row_text.lower():
+            if "placering" in row_text.lower() or "spelare" in row_text.lower() or "lag" in row_text.lower():
                 col_row = r
                 break
 
@@ -128,6 +127,11 @@ def dashboard():
         rows = []
         for r in range(col_row + 1, end_row):
             row = df.iloc[r, :].dropna().tolist()
+            # hoppa över tomma eller kolumnrader
+            if not row or all(str(x).strip() == "" for x in row):
+                continue
+            if any(str(x).lower() in ["placering", "spelare", "lag", "datum", "klubb"] for x in row):
+                continue
             if len(row) < len(columns):
                 continue
             entry = dict(zip(columns, row))
@@ -160,7 +164,6 @@ def tour_summary():
         return jsonify({"error": wb}), 500
 
     totals = {}
-
     for sheet in wb.sheet_names:
         name = sheet.lower()
         if name in ["dashboard", "tourställning"]:
@@ -196,7 +199,7 @@ def tour_summary():
 
 @app.route("/version")
 def version():
-    return jsonify({"backend_version": "2026-07-10-02:50"})
+    return jsonify({"backend_version": "2026-07-10-03:20"})
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
