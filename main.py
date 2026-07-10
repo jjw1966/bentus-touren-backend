@@ -5,7 +5,7 @@ from datetime import datetime
 
 app = FastAPI()
 
-# Tillåt frontend på Render
+# 🟩 Tillåt frontend på Render
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -14,7 +14,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 🟩 Dynamisk tabell-läsare (fungerar för alla flikar)
+# 🟩 Dynamisk tabell-läsare
 def read_table(sheet, header_text):
     header_row = None
 
@@ -65,7 +65,7 @@ def get_dashboard():
     return dashboard
 
 
-# 🟩 NY: Tourställning-endpoint
+# 🟩 Tourställning-endpoint
 @app.get("/tourstallning")
 def get_tourstallning():
     wb = load_workbook("BentusTouren.xlsx", data_only=True)
