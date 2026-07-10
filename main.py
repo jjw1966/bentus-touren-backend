@@ -14,6 +14,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# 🟩 Health check (Render kräver denna)
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
+
 # 🟩 Dynamisk tabell-läsare
 def read_table(sheet, header_text):
     header_row = None
