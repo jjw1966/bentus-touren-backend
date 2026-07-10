@@ -40,21 +40,27 @@ def load_workbook():
     global _cache_workbook, _cache_timestamp
     now = time.time()
     if _cache_workbook is not None and (now - _cache_timestamp) < CACHE_TTL:
+        print("Using cached workbook")
         return _cache_workbook
     try:
+        print("Downloading workbook...")
         wb = pd.ExcelFile(FILE_URL)
+        print("Workbook downloaded:", wb.sheet_names)
         _cache_workbook = wb
         _cache_timestamp = now
         return wb
     except Exception as e:
+        print("Workbook error:", e)
         return str(e)
 
 def safe_sheet(wb, name):
     for sheet in wb.sheet_names:
-        if sheet.lower().startswith(name.lower()):
+        if name.lower() in sheet.lower():
+            print("Using sheet:", sheet)
             df = wb.parse(sheet, header=None)
             df = df.fillna(method="ffill", axis=1)
             return df, None, None
+    print("Sheet not found:", name)
     return None, jsonify({"error": f"Fliken '{name}' finns inte."}), 404
 
 def lowercase_dict(d):
@@ -70,26 +76,15 @@ def normalize_text(text):
 def fuzzy_match(a, b):
     return normalize_text(a).startswith(normalize_text(b)) or normalize_text(b).startswith(normalize_text(a))
 
-def to_number(value):
-    try:
-        if pd.isna(value):
-            return None
-        if isinstance(value, (int, float)):
-            return value
-        value = str(value).strip().replace(",", ".")
-        return float(value)
-    except Exception:
-        return None
-
-@app.route("/")
-def health():
-    return jsonify({"status": "ok"}), 200
-
 @app.route("/dashboard")
 def dashboard():
-    wb = load_workbook()
-    if isinstance(wb, str):
-        return jsonify({"error": wb}), 500
+    try:
+        wb = load_workbook()
+        if isinstance(wb, str):
+            return jsonify({"error": wb}), 500
+    except Exception as e:
+        print("Dashboard load error:", e)
+        return jsonify({"error": str(e)}), 500
 
     df, err, code = safe_sheet(wb, "Dashboard")
     if err:
@@ -108,20 +103,24 @@ def dashboard():
     ]
 
     def extract_table(label, columns):
+        print("Extracting:", label)
         label_norm = normalize_text(label)
         label_rows = df.index[
             df.apply(lambda r: any(label_norm in normalize_text(x) for x in r.astype(str)), axis=1)
         ]
         if len(label_rows) == 0:
+            print("Label not found:", label)
             return []
 
         start_row = label_rows[0]
+        print("Label row:", start_row)
 
         col_row = None
         for r in range(start_row + 1, len(df)):
             row_text = " ".join(df.iloc[r, :].astype(str)).lower()
             if any(word in row_text for word in ["placering", "spelare", "lag", "datum", "klubb", "poäng"]):
                 col_row = r
+                print("Column row:", col_row)
                 break
 
         if col_row is None:
@@ -132,30 +131,23 @@ def dashboard():
             row_text = " ".join(df.iloc[r, :].astype(str))
             if any(fuzzy_match(row_text, h) for h in headers):
                 end_row = r
+                print("Next header at row:", end_row)
                 break
 
         rows = []
         for r in range(col_row + 1, end_row):
             row = df.iloc[r, :].dropna().tolist()
-            if not row or all(str(x).strip() == "" for x in row):
-                continue
+            print("Row:", r, row)
 
-            # PATCH: hoppa över rubrikrader, inte kolumnrader
             if any(fuzzy_match(str(x), h) for h in headers):
                 continue
 
             if len(row) < len(columns):
+                print("Skipping short row:", row)
                 continue
 
             entry = dict(zip(columns, row))
             rows.append(lowercase_dict(entry))
-
-        if not rows and col_row + 1 < len(df):
-            for r in range(col_row + 1, min(col_row + 3, len(df))):
-                row = df.iloc[r, :].dropna().tolist()
-                if len(row) >= len(columns):
-                    entry = dict(zip(columns, row))
-                    rows.append(lowercase_dict(entry))
 
         return rows
 
@@ -179,7 +171,7 @@ def dashboard():
 
 @app.route("/version")
 def version():
-    return jsonify({"backend_version": "2026-07-10-11:00"})
+    return jsonify({"backend_version": "2026-07-10-11:30"})
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
