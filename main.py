@@ -61,7 +61,6 @@ def normalize_text(text):
     return text
 
 def fuzzy_match(a, b):
-    """Return True if normalized strings share common prefix."""
     return normalize_text(a).startswith(normalize_text(b)) or normalize_text(b).startswith(normalize_text(a))
 
 def to_number(value):
@@ -114,13 +113,14 @@ def dashboard():
         # hitta kolumnraden
         col_row = None
         for r in range(start_row + 1, len(df)):
-            row_text = " ".join(df.iloc[r, :].astype(str))
-            if "placering" in row_text.lower() or "spelare" in row_text.lower() or "lag" in row_text.lower():
+            row_text = " ".join(df.iloc[r, :].astype(str)).lower()
+            if any(word in row_text for word in ["placering", "spelare", "lag", "datum", "klubb", "poäng"]):
                 col_row = r
                 break
 
+        # fallback om kolumnrad saknas
         if col_row is None:
-            return []
+            col_row = start_row
 
         # hitta nästa rubrikrad
         end_row = len(df)
@@ -204,7 +204,7 @@ def tour_summary():
 
 @app.route("/version")
 def version():
-    return jsonify({"backend_version": "2026-07-10-03:45"})
+    return jsonify({"backend_version": "2026-07-10-03:52"})
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
