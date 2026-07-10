@@ -63,16 +63,12 @@ def safe_sheet(wb, name):
     for sheet in wb.sheet_names:
         if name_norm in sheet.lower():
             print("Using sheet:", sheet)
-            # Hoppa över rubrik + tom rad
-            df = wb.parse(sheet, header=None, skiprows=3)
-            df = df.fillna(method="ffill", axis=1)
+            df = wb.parse(sheet, header=None)
+            df = df.fillna("")
             return df, None, None
 
     print("Sheet not found:", name)
     return None, jsonify({"error": f"Fliken '{name}' finns inte."}), 404
-
-def lowercase_dict(d):
-    return {k.lower(): v for k, v in d.items()}
 
 def normalize_text(text):
     text = str(text).lower()
@@ -81,8 +77,49 @@ def normalize_text(text):
     text = re.sub(r"[^a-z0-9]", "", text)
     return text
 
-def fuzzy_match(a, b):
-    return normalize_text(a).startswith(normalize_text(b)) or normalize_text(b).startswith(normalize_text(a))
+def find_row(df, keyword):
+    key = normalize_text(keyword)
+    for idx, row in df.iterrows():
+        row_text = " ".join(str(x) for x in row)
+        if key in normalize_text(row_text):
+            return idx
+    return None
+
+def extract_table(df, header_keywords, columns):
+    start = find_row(df, header_keywords)
+    if start is None:
+        print("Header not found:", header_keywords)
+        return []
+
+    # Find column row
+    col_row = None
+    for r in range(start + 1, len(df)):
+        row_text = " ".join(str(x) for x in df.iloc[r])
+        if any(word in row_text.lower() for word in ["placering", "spelare", "lag", "datum", "klubb", "poäng"]):
+            col_row = r
+            break
+
+    if col_row is None:
+        print("Column row not found for:", header_keywords)
+        return []
+
+    # Find end row
+    end_row = len(df)
+    for r in range(col_row + 1, len(df)):
+        row_text = " ".join(str(x) for x in df.iloc[r])
+        if any(normalize_text(h) in normalize_text(row_text) for h in ["topp", "narmast", "langsta", "spelade", "deltavlingsvinster", "landskamper", "deltavlingar"]):
+            end_row = r
+            break
+
+    rows = []
+    for r in range(col_row + 1, end_row):
+        row = [x for x in df.iloc[r] if str(x).strip() != ""]
+        if len(row) < len(columns):
+            continue
+        entry = dict(zip(columns, row))
+        rows.append({k.lower(): v for k, v in entry.items()})
+
+    return rows
 
 @app.route("/dashboard")
 def dashboard():
@@ -104,75 +141,13 @@ def dashboard():
 
     df = df.dropna(how="all")
 
-    headers = [
-        "topp",
-        "narmast",
-        "langsta",
-        "spelade",
-        "deltavlingsvinster",
-        "landskamper",
-        "deltavlingar"
-    ]
-
-    def extract_table(label, columns):
-        print("Extracting:", label)
-        label_norm = normalize_text(label)
-
-        label_rows = df.index[
-            df.apply(lambda r: any(label_norm in normalize_text(x) for x in r.astype(str)), axis=1)
-        ]
-
-        if len(label_rows) == 0:
-            print("Label not found:", label)
-            return []
-
-        start_row = label_rows[0]
-        print("Label row:", start_row)
-
-        col_row = None
-        for r in range(start_row + 1, len(df)):
-            row_text = " ".join(df.iloc[r, :].astype(str)).lower()
-            if any(word in row_text for word in ["placering", "spelare", "lag", "datum", "klubb", "poäng"]):
-                col_row = r
-                print("Column row:", col_row)
-                break
-
-        if col_row is None:
-            print("No column row found for", label)
-            return []
-
-        end_row = len(df)
-        for r in range(col_row + 1, len(df)):
-            row_text = " ".join(df.iloc[r, :].astype(str))
-            if any(fuzzy_match(row_text, h) for h in headers):
-                end_row = r
-                print("Next header at row:", end_row)
-                break
-
-        rows = []
-        for r in range(col_row + 1, end_row):
-            row = df.iloc[r, :].dropna().tolist()
-            print("Row:", r, row)
-
-            if any(fuzzy_match(str(x), h) for h in headers):
-                continue
-
-            if len(row) < len(columns):
-                print("Skipping short row:", row)
-                continue
-
-            entry = dict(zip(columns, row))
-            rows.append(lowercase_dict(entry))
-
-        return rows
-
-    topp5 = extract_table("topp", ["Placering", "Spelare", "Tourpoäng"])
-    nh = extract_table("narmast", ["Placering", "Spelare", "Nh"])
-    ld = extract_table("langsta", ["Placering", "Spelare", "Ld"])
-    spelade = extract_table("spelade", ["Placering", "Spelare", "Antal"])
-    vinster = extract_table("deltavlingsvinster", ["Placering", "Spelare", "Vinster"])
-    landskamper = extract_table("landskamper", ["Placering", "Lag", "Vinster", "Poäng"])
-    deltävlingar = extract_table("deltavlingar", ["Datum", "Klubb"])
+    topp5 = extract_table(df, "topp", ["Placering", "Spelare", "Tourpoäng"])
+    nh = extract_table(df, "narmast", ["Placering", "Spelare", "Nh"])
+    ld = extract_table(df, "langsta", ["Placering", "Spelare", "Ld"])
+    spelade = extract_table(df, "spelade", ["Placering", "Spelare", "Antal"])
+    vinster = extract_table(df, "deltavlingsvinster", ["Placering", "Spelare", "Vinster"])
+    landskamper = extract_table(df, "landskamper", ["Placering", "Lag", "Vinster", "Poäng"])
+    deltävlingar = extract_table(df, "deltavlingar", ["Datum", "Klubb"])
 
     print("Dashboard extraction complete")
 
@@ -188,7 +163,7 @@ def dashboard():
 
 @app.route("/version")
 def version():
-    return jsonify({"backend_version": "2026-07-10-14:25"})
+    return jsonify({"backend_version": "2026-07-10-14:30"})
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
