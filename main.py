@@ -61,9 +61,10 @@ def load_workbook():
 def safe_sheet(wb, name):
     name_norm = name.lower()
     for sheet in wb.sheet_names:
-        if name_norm in sheet.lower():   # ← matchar även "Dashboard 2026"
+        if name_norm in sheet.lower():
             print("Using sheet:", sheet)
-            df = wb.parse(sheet, header=None)
+            # Hoppa över rubriken "Bentus Touren 2026 – Dashboard"
+            df = wb.parse(sheet, header=None, skiprows=2)
             df = df.fillna(method="ffill", axis=1)
             return df, None, None
 
@@ -187,7 +188,7 @@ def dashboard():
 
 @app.route("/version")
 def version():
-    return jsonify({"backend_version": "2026-07-10-14:10"})
+    return jsonify({"backend_version": "2026-07-10-14:15"})
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
