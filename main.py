@@ -6,7 +6,10 @@ import unicodedata
 import re
 
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "https://bentus-touren-frontend.onrender.com"}}, supports_credentials=True)
+CORS(app, resources={r"/*": {"origins": [
+    "https://bentus-touren-frontend.onrender.com",
+    "https://www.bentus-touren-frontend.onrender.com"
+]}}, supports_credentials=True)
 
 @app.after_request
 def add_cors_headers(response):
@@ -26,9 +29,9 @@ def handle_options():
         response.headers["Access-Control-Max-Age"] = "3600"
         return response
 
-# Health check for Render
 @app.route("/health")
 def health_check():
+    print("Health check OK")
     return jsonify({"status": "ok"}), 200
 
 FILE_URL = "https://docs.google.com/spreadsheets/d/1oBF2HfyMOp1xjGAcuUrduvgds4ToyuQz/export?format=xlsx"
@@ -39,9 +42,11 @@ _cache_timestamp = 0
 def load_workbook():
     global _cache_workbook, _cache_timestamp
     now = time.time()
+
     if _cache_workbook is not None and (now - _cache_timestamp) < CACHE_TTL:
         print("Using cached workbook")
         return _cache_workbook
+
     try:
         print("Downloading workbook...")
         wb = pd.ExcelFile(FILE_URL)
@@ -54,12 +59,14 @@ def load_workbook():
         return str(e)
 
 def safe_sheet(wb, name):
+    name_norm = name.lower()
     for sheet in wb.sheet_names:
-        if name.lower() in sheet.lower():
+        if name_norm in sheet.lower():
             print("Using sheet:", sheet)
             df = wb.parse(sheet, header=None)
             df = df.fillna(method="ffill", axis=1)
             return df, None, None
+
     print("Sheet not found:", name)
     return None, jsonify({"error": f"Fliken '{name}' finns inte."}), 404
 
@@ -78,9 +85,12 @@ def fuzzy_match(a, b):
 
 @app.route("/dashboard")
 def dashboard():
+    print("Dashboard called")
+
     try:
         wb = load_workbook()
         if isinstance(wb, str):
+            print("Workbook load error:", wb)
             return jsonify({"error": wb}), 500
     except Exception as e:
         print("Dashboard load error:", e)
@@ -88,6 +98,7 @@ def dashboard():
 
     df, err, code = safe_sheet(wb, "Dashboard")
     if err:
+        print("Sheet error:", err)
         return err, code
 
     df = df.dropna(how="all")
@@ -105,9 +116,11 @@ def dashboard():
     def extract_table(label, columns):
         print("Extracting:", label)
         label_norm = normalize_text(label)
+
         label_rows = df.index[
             df.apply(lambda r: any(label_norm in normalize_text(x) for x in r.astype(str)), axis=1)
         ]
+
         if len(label_rows) == 0:
             print("Label not found:", label)
             return []
@@ -124,7 +137,8 @@ def dashboard():
                 break
 
         if col_row is None:
-            col_row = start_row
+            print("No column row found for", label)
+            return []
 
         end_row = len(df)
         for r in range(col_row + 1, len(df)):
@@ -159,6 +173,8 @@ def dashboard():
     landskamper = extract_table("landskamper", ["Placering", "Lag", "Vinster", "Poäng"])
     deltävlingar = extract_table("deltavlingar", ["Datum", "Klubb"])
 
+    print("Dashboard extraction complete")
+
     return jsonify({
         "topp5": topp5,
         "nh": nh,
@@ -171,7 +187,7 @@ def dashboard():
 
 @app.route("/version")
 def version():
-    return jsonify({"backend_version": "2026-07-10-11:30"})
+    return jsonify({"backend_version": "2026-07-10-14:00"})
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
