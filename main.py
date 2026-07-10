@@ -2,6 +2,8 @@ from flask import Flask, jsonify, request, make_response
 from flask_cors import CORS
 import pandas as pd
 import time
+import unicodedata
+import re
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "https://bentus-touren-frontend.onrender.com"}}, supports_credentials=True)
@@ -51,6 +53,14 @@ def safe_sheet(wb, name):
 def lowercase_dict(d):
     return {k.lower(): v for k, v in d.items()}
 
+def normalize_text(text):
+    """Tar bort siffror, mellanslag och diakritiska tecken för robust matchning."""
+    text = str(text).lower()
+    text = unicodedata.normalize("NFKD", text)
+    text = "".join(c for c in text if not unicodedata.combining(c))
+    text = re.sub(r"[^a-z]", "", text)
+    return text
+
 def to_number(value):
     try:
         if pd.isna(value):
@@ -79,18 +89,19 @@ def dashboard():
     df = df.dropna(how="all")
 
     headers = [
-        "Topp",
-        "Närmast",
-        "Längsta",
-        "Spelade",
-        "Deltävlingsvinster",
-        "Landskamper",
-        "Deltävlingar"
+        "topp",
+        "narmast",
+        "langsta",
+        "spelade",
+        "deltavlingsvinster",
+        "landskamper",
+        "deltavlingar"
     ]
 
     def extract_table(label, columns):
+        label_norm = normalize_text(label)
         label_rows = df.index[
-            df.apply(lambda r: r.astype(str).str.contains(label, case=False).any(), axis=1)
+            df.apply(lambda r: any(label_norm in normalize_text(x) for x in r.astype(str)), axis=1)
         ]
         if len(label_rows) == 0:
             return []
@@ -99,7 +110,7 @@ def dashboard():
         col_row = start_row + 1
 
         next_rows = df.index[
-            df.apply(lambda r: r.astype(str).str.contains("|".join(headers), case=False).any(), axis=1)
+            df.apply(lambda r: any(normalize_text(x) in headers for x in r.astype(str)), axis=1)
         ]
         next_rows = [r for r in next_rows if r > start_row]
         end_row = next_rows[0] if next_rows else len(df)
@@ -111,16 +122,15 @@ def dashboard():
                 continue
             entry = dict(zip(columns, row))
             rows.append(lowercase_dict(entry))
-
         return rows
 
-    topp5 = extract_table("Topp", ["Placering", "Spelare", "Tourpoäng"])
-    nh = extract_table("Närmast", ["Placering", "Spelare", "Nh"])
-    ld = extract_table("Längsta", ["Placering", "Spelare", "Ld"])
-    spelade = extract_table("Spelade", ["Placering", "Spelare", "Antal"])
-    vinster = extract_table("Deltävlingsvinster", ["Placering", "Spelare", "Vinster"])
-    landskamper = extract_table("Landskamper", ["Placering", "Lag", "Vinster", "Poäng"])
-    deltävlingar = extract_table("Deltävlingar", ["Datum", "Klubb"])
+    topp5 = extract_table("topp", ["Placering", "Spelare", "Tourpoäng"])
+    nh = extract_table("narmast", ["Placering", "Spelare", "Nh"])
+    ld = extract_table("langsta", ["Placering", "Spelare", "Ld"])
+    spelade = extract_table("spelade", ["Placering", "Spelare", "Antal"])
+    vinster = extract_table("deltavlingsvinster", ["Placering", "Spelare", "Vinster"])
+    landskamper = extract_table("landskamper", ["Placering", "Lag", "Vinster", "Poäng"])
+    deltävlingar = extract_table("deltavlingar", ["Datum", "Klubb"])
 
     return jsonify({
         "topp5": topp5,
@@ -139,18 +149,14 @@ def tour_summary():
         return jsonify({"error": wb}), 500
 
     totals = {}
-
     for sheet in wb.sheet_names:
         name = sheet.lower()
-
         if name in ["dashboard", "tourställning"]:
             continue
-
         if name.startswith("deltävling"):
             df, err, code = safe_sheet(wb, sheet)
             if err:
                 continue
-
             try:
                 start_row = 3
                 end_row = len(df)
@@ -162,7 +168,6 @@ def tour_summary():
                 main_table = main_table.fillna("")
             except Exception:
                 continue
-
             for _, row in main_table.iterrows():
                 player = str(row["Spelare"]).strip()
                 points = to_number(row["Tourpoäng"])
@@ -171,17 +176,15 @@ def tour_summary():
                 totals[player] = totals.get(player, 0) + points
 
     sorted_totals = sorted(totals.items(), key=lambda x: x[1], reverse=True)
-
     result = [
         lowercase_dict({"Spelare": p, "Totalpoäng": round(v, 1)})
         for p, v in sorted_totals
     ]
-
     return jsonify(result)
 
 @app.route("/version")
 def version():
-    return jsonify({"backend_version": "2026-07-10-02:40"})
+    return jsonify({"backend_version": "2026-07-10-02:50"})
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
