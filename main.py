@@ -9,39 +9,50 @@ app = FastAPI()
 
 # 🟩 Tillåt frontend på Render
 app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    CORSMiddleware(
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 )
 
-# 🟩 Google Drive-länk till Excel
-GOOGLE_DRIVE_URL = "https://docs.google.com/spreadsheets/d/1a6gNhvSLO6kEBzZbWM2He8Zn0vblFNcgrE4iGr-b_ko/export?format=xlsx"
-# 🟩 Health check (Render kräver denna)
+# 🟩 Google Drive – direktnedladdning av Excel-fil (uppladdad fil)
+GOOGLE_DRIVE_URL = (
+    "https://drive.google.com/uc?export=download&id=1a6gNhvSLO6kEBzZbWM2He8Zn0vblFNcgrE4iGr-b_ko"
+)
+
 @app.get("/health")
 def health():
     return {"status": "ok"}
 
 
-# 🟩 Funktion för att hämta Excel från Drive med fallback
+# 🟩 Hämta Excel från Drive med fallback
 def load_excel():
     try:
+        print("🔵 Hämtar från Drive:", GOOGLE_DRIVE_URL)
         response = requests.get(GOOGLE_DRIVE_URL, timeout=10)
+        print("🔵 Statuskod:", response.status_code)
         response.raise_for_status()
+
+        print("🟢 Drive OK, laddar Excel...")
         return load_workbook(BytesIO(response.content), data_only=True)
+
     except Exception as e:
-        print(f"⚠️ Kunde inte hämta från Drive: {e}")
+        print("🔴 Drive-fel:", e)
+
         try:
+            print("🟡 Försöker lokal fil...")
             return load_workbook("BentusTouren.xlsx", data_only=True)
         except Exception as e2:
-            print(f"⚠️ Kunde inte läsa lokal fil heller: {e2}")
+            print("🔴 Lokal fil-fel:", e2)
             raise RuntimeError("Excel-filen kunde inte laddas från Drive eller lokalt.")
 
 
 # 🟩 Dynamisk tabell-läsare
 def read_table(sheet, header_text):
     header_row = None
+
     for i, row in enumerate(sheet.iter_rows(values_only=True)):
         if row and isinstance(row[0], str) and row[0].strip().startswith(header_text):
             header_row = i + 1
@@ -102,7 +113,6 @@ def get_tourstallning():
     return tour
 
 
-# 🟩 Root-endpoint
 @app.get("/")
 def root():
     return {"status": "Bentus Touren backend aktiv"}
