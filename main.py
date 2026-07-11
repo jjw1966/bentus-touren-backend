@@ -17,8 +17,7 @@ app.add_middleware(
 )
 
 # 🟩 Google Drive-länk till Excel
-GOOGLE_DRIVE_URL = "https://docs.google.com/spreadsheets/d/1a6gNhvSLO6kEBzZbWM2He8Zn0vblFNcgrE4iGr-b_ko/export?format=xlsx
-
+GOOGLE_DRIVE_URL = "https://docs.google.com/spreadsheets/d/1a6gNhvSLO6kEBzZbWM2He8Zn0vblFNcgrE4iGr-b_ko/export?format=xlsx"
 # 🟩 Health check (Render kräver denna)
 @app.get("/health")
 def health():
